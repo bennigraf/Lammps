@@ -71,7 +71,7 @@ function RF.prototype.setCRC(active, mode) {
 
 // global address width (3 to 5 bytes)
 // RF.RADDR.SETUP_AW
-function RF.prototype.addr_width(width) {
+function RF.prototype.setAddrWidth(width) {
 	// just write width here because nothing else is stored in that register
 	width = width - 2; // assuming width is (int)3..5, this translates to (int)1..3 in the register
 	this.setRegister(this.RADDR.SETUP_AW, width, function() {
