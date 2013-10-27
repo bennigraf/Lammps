@@ -14,10 +14,16 @@ function RF(spiPath) = {
 
 // read a register at a address (up to 5 bytes...) and return numDataBytes to Callback...
 RF.prototype.readRegister = function(addr, numDataBytes, callback) {
-	var txbuf = new Buffer(this.R_REGISTER);
+	// ANDing addr with read command
+	var cmd = new Buffer(this.R_REGISTER & addr);
+	// padding with null bytes to receive data bytes
+	var padbuf = new Buffer(numDataBytes)
+	var txbuf = Buffer.concat([cmd, padbuf]);
+	// copy rxbuf because it needs to be the same length (why not use spi.write here, would be the same...)
 	var rxbuf = txbuf;
-	
-	spi.transmit(txbuf, rxbuf, function(dev, buf) {
+	// invoke spi, hand over to callback
+	spi.transfer(txbuf, rxbuf, function(dev, buf) {
+		console.log("wrote data, read register content is " + buf);
 		callback(buf);
 	});
 }
@@ -27,6 +33,12 @@ RF.prototype.readRegister = function(addr, numDataBytes, callback) {
 RF.prototype.setRegister = function(addr, data, callback) {
 	// erm...
 	// just set data bytes here, take care of not overwriting flags somewhere else...
+	var cmdbyte = this.W_REGISTER & addr;
+	var txbuf = new Buffer([cmdbyte, data]);
+	
+	spi.write(txbuf, function (dev, buf) {
+		console.log("successfully written data, cmd was: " + txbuf);
+	})
 }
 
 
@@ -42,14 +54,29 @@ function RF.prototype.receive (pipe, callback) {
 	callback(buffer);
 }
 
-// set crc mode; (bool)active and (int)mode
-function RF.prototype.setCRC (active, mode) {
-	
+// set crc mode; (bool)active and (int)mode (0 -> 1 byte, 1 -> 2 byte)
+// RF.RADDR.CONFIG + bit 3 and 2
+function RF.prototype.setCRC(active, mode) {
+	// read register
+	this.readRegister(this.RADDR.CONFIG, 1, function(buf) {
+		// buf[0] contains status byte I guess...
+		var currentConf = buf[1];
+		var newConf = this.setBit(currentConf, this.BITMASKS.EN_CRC, active);
+		newConf = this.setBit(newConf, this.BITMASKS.CRCO, mode);
+		this.setRegister(this.RADDR.CONFIG, newConf, function(){
+			console.log("Set register" + this.RADDR.CONFIG + "to data" + newConf);
+		});
+	});
 }
 
 // global address width (3 to 5 bytes)
+// RF.RADDR.SETUP_AW
 function RF.prototype.addr_width(width) {
-	
+	// just write width here because nothing else is stored in that register
+	width = width - 2; // assuming width is (int)3..5, this translates to (int)1..3 in the register
+	this.setRegister(this.RADDR.SETUP_AW, width, function() {
+		console.log("New addr width set to mode: " + width);
+	});
 }
 
 // recv address of specific pipe
@@ -87,49 +114,66 @@ function RF.prototype.tx_address (addr) {
 
 
 RF.CMDS = {
-	RF.R_REGISTER: [0x00], // 000A AAAA -> AAAAA is the register address
-	RF.W_REGISTER: [0x20], // 001A AAAA -> s.o.
-	RF.R_RX_PAYLOAD: [0x61], // 0110 0001, read RX payload
-	RF.W_TX_PAYLOAD: [0xA0], // 1010 0000, write TX payload
-	RF.FLUSH_TX: [0xE1], // 1110 0001;
-	RF.FLUSH_RX: [0xE2], // 1110 0010;
-	RF.R_RX_PL_WID: [0x60], // 0110 0000; Read RX payload width
-	RF.W_ACK_PAYLOAD: [0xA8], // 1010 1PPP; P is a pipe...
-	RF.W_TX_PAYLOAD_NO_ACK: [0xB0], // 1011 0000; No ack on next packet...
-	RF.NOP: [0xFF], // NO OPERATION! Love this! (Used to read out status byte...)
+	RF.R_REGISTER: 0x00, // 000A AAAA -> AAAAA is the register address
+	RF.W_REGISTER: 0x20, // 001A AAAA -> s.o.
+	RF.R_RX_PAYLOAD: 0x61, // 0110 0001, read RX payload
+	RF.W_TX_PAYLOAD: 0xA0, // 1010 0000, write TX payload
+	RF.FLUSH_TX: 0xE1, // 1110 0001;
+	RF.FLUSH_RX: 0xE2, // 1110 0010;
+	RF.R_RX_PL_WID: 0x60, // 0110 0000; Read RX payload width
+	RF.W_ACK_PAYLOAD: 0xA8, // 1010 1PPP; P is a pipe...
+	RF.W_TX_PAYLOAD_NO_ACK: 0xB0, // 1011 0000; No ack on next packet...
+	RF.NOP: 0xFF, // NO OPERATION! Love this! (Used to read out status byte...)
 };
 
 // don't know how to deal with this stuff yet... see here:
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_Operators?redirectlocale=en-US&redirectslug=JavaScript%2FReference%2FOperators%2FBitwise_Operators
 // register addresses for configuration shit... to be ANDed with RF.CMDS.R_REGISTER and .W_REGISTER
-RF.RMADDR = {
-	CONFIG: 	[0x00], // general configuration
-	EN_AA: 		[0x01], // Auto Ack (Enh. ShockBurst), enabled on all pipes by default
-	EN_RXADDR: 	[0x02], // enable rx addresses/pipes, 0 and 1 are enabled by default
-	SETUP_AW: 	[0x03], // Address width!
-	SETUP_RETR: [0x04],	// automatic retransmission, delay and count
-	RF_CH: 		[0x05], // Channel...
-	RF_SETUP: 	[0x06],	// various setup stuff, data rate!!
-	STATUS: 	[0x07],	// same as status sent during spi-cmd-byte
-	OBSERVE_TX: [0x08],	// monitor transmission
-	RPD: 		[0x09],	// received power detector
-	RX_ADDR_P0: [0x0A],	// receive-address of pipe 0
-	RX_ADDR_P1: [0x0B],	// receive-address of pipe 0
-	RX_ADDR_P2: [0x0C],	// receive-address of pipe 0
-	RX_ADDR_P3: [0x0D],	// receive-address of pipe 0
-	RX_ADDR_P4: [0x0E],	// receive-address of pipe 0
-	RX_ADDR_P5: [0x0F],	// receive-address of pipe 0
-	TX_ADDR: 	[0x10], // transmit address
-	RX_PW_P0: 	[0x11], // numbytes (received) in pipe 0 (1..32)
-	RX_PW_P1: 	[0x12], // numbytes (received) in pipe 0 (1..32)
-	RX_PW_P2: 	[0x13], // numbytes (received) in pipe 0 (1..32)
-	RX_PW_P3: 	[0x14], // numbytes (received) in pipe 0 (1..32)
-	RX_PW_P4: 	[0x15], // numbytes (received) in pipe 0 (1..32)
-	RX_PW_P5: 	[0x16], // numbytes (received) in pipe 0 (1..32)
-	FIFO_STATUS: [0x17], // fifo status... duh
-	DYNPD: 		[0x1C],	// enable dynamic payload on pipes (disabled by default!)
-	FEATURE: 	[0x1D], // special features :-) (dynamic payload, ack payload)
+RF.RADDR = {
+	CONFIG: 	0x00, // general configuration
+	EN_AA: 		0x01, // Auto Ack (Enh. ShockBurst), enabled on all pipes by default
+	EN_RXADDR: 	0x02, // enable rx addresses/pipes, 0 and 1 are enabled by default
+	SETUP_AW: 	0x03, // Address width!
+	SETUP_RETR: 0x04,	// automatic retransmission, delay and count
+	RF_CH: 		0x05, // Channel...
+	RF_SETUP: 	0x06,	// various setup stuff, data rate!!
+	STATUS: 	0x07,	// same as status sent during spi-cmd-byte
+	OBSERVE_TX: 0x08,	// monitor transmission
+	RPD: 		0x09,	// received power detector
+	RX_ADDR_P0: 0x0A,	// receive-address of pipe 0
+	RX_ADDR_P1: 0x0B,	// receive-address of pipe 0
+	RX_ADDR_P2: 0x0C,	// receive-address of pipe 0
+	RX_ADDR_P3: 0x0D,	// receive-address of pipe 0
+	RX_ADDR_P4: 0x0E,	// receive-address of pipe 0
+	RX_ADDR_P5: 0x0F,	// receive-address of pipe 0
+	TX_ADDR: 	0x10, // transmit address
+	RX_PW_P0: 	0x11, // numbytes (received) in pipe 0 (1..32)
+	RX_PW_P1: 	0x12, // numbytes (received) in pipe 0 (1..32)
+	RX_PW_P2: 	0x13, // numbytes (received) in pipe 0 (1..32)
+	RX_PW_P3: 	0x14, // numbytes (received) in pipe 0 (1..32)
+	RX_PW_P4: 	0x15, // numbytes (received) in pipe 0 (1..32)
+	RX_PW_P5: 	0x16, // numbytes (received) in pipe 0 (1..32)
+	FIFO_STATUS: 0x17, // fifo status... duh
+	DYNPD: 		0x1C,	// enable dynamic payload on pipes (disabled by default!)
+	FEATURE: 	0x1D, // special features :-) (dynamic payload, ack payload)
 }
+
+RF.BITMASKS = {
+	EN_CRC: 	parseInt("00001000", 2),
+	CRCO: 		parseInt("00000100", 2),
+	
+}
+
+
+// Helper function to set specific bit (mask) in byte (byte) to bool value (value)
+function RF.prototype.setBit(byte, mask, value) {
+	var retByte;
+	if(value == 1) { retByte = byte | mask; };
+	if(value == 0) { retByte = byte & ~mask; };
+	return retByte;
+}
+
+
 
 /*
 
@@ -146,21 +190,21 @@ nth byte: 	just the fucking bytes...
 
 functionality (by priority):
 Hi -----
-x check for incoming data on pipe and read it	=> RF.RMADDR.RX_PW_Pn + RF.CMDS.R_RX_PAYLOAD
+x check for incoming data on pipe and read it	=> RF.RADDR.RX_PW_Pn + RF.CMDS.R_RX_PAYLOAD
 x send data (addr, channel etc has been set)	=> RF.CMDS.W_TX_PAYLOAD + CE on high...
-x Enable/Disable CRC, select 1- or 2-byte-crc 	=> RF.RMADDR.CONFIG + bit 3 and 2
-x set global Address width (3-5 bytes)			=> RF.RMADDR.SETUP_AW (globally for all addresses)
-x set receiving Address of specific pipe		=> RF.RMADDR.EN_RXADDR + RX_ADDR_Px
-x set channel									=> RF.RMADDR.RF_CH
-x set data rate									=> RF.RMADDR.RF_SETUP
-x set output power (-18 to 0dbm)				=> RF.RMADDR.RF_SETUP
+x Enable/Disable CRC, select 1- or 2-byte-crc 	=> RF.RADDR.CONFIG + bit 3 and 2
+x set global Address width (3-5 bytes)			=> RF.RADDR.SETUP_AW (globally for all addresses)
+x set receiving Address of specific pipe		=> RF.RADDR.EN_RXADDR + RX_ADDR_Px
+x set channel									=> RF.RADDR.RF_CH
+x set data rate									=> RF.RADDR.RF_SETUP
+x set output power (-18 to 0dbm)				=> RF.RADDR.RF_SETUP
 ** (maybe combine data rate and power into one call?)
-x Enable/Disable Auto-Ack on specific pipe 		=> RF.RMADDR.EN_AA + bit 5 to 0 for the 6 pipes
-x set transmit address							=> RF.RMADDR.TX_ADDR
+x Enable/Disable Auto-Ack on specific pipe 		=> RF.RADDR.EN_AA + bit 5 to 0 for the 6 pipes
+x set transmit address							=> RF.RADDR.TX_ADDR
 
 lo -----
-* manage retransmission (delay, number of tries) => RF.RMADDR.SETUP_RETR
-* maybe read receive-power						=> RF.RMADDR.RPD
+* manage retransmission (delay, number of tries) => RF.RADDR.SETUP_RETR
+* maybe read receive-power						=> RF.RADDR.RPD
 
 * rx-mode: get into receiving mode and wait for incoming packets (maybe with irq??); only leave to transmit a packet
 
