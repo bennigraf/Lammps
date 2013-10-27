@@ -9,6 +9,8 @@ GPIO is needed for the CE signal which is used (additionally to the spi interfac
 
 IRQs are not used in this first version but may be added to receive data later. For now, we have to manually check for incoming data.
 
+BTW: There's no tolerance for faulty data yet, so use wisely!
+
 Basic Usage
 ===========
 
