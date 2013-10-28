@@ -8,9 +8,35 @@ var gpio = require('rpi-gpio');
 
 // constructor
 // conntects to rf via spi-device given in path (on rpi: /dev/spidev0.0 or 0.1);
-function RF(spiPath) {
-	this.device = new spi.Spi(spiPath);
-	this.device.open();
+function RF(spiPath, gpiopin = 18) {
+	// start spi stuff
+	this.spi = new spi.Spi(spiPath);
+	this.spi.open();
+	
+	// setup gpio stuff (for stupid ce pulling)
+	gpio.setup(gpiopin, gpio.DIR_OUT, function(){ 
+		console.log("gpio-output enabled!");
+	});
+}
+
+
+RF.prototype.sendData = function(data) {
+	// assuming data is already a buffer here, but just to be sure...
+	if(data.length == undefined) { data = new Buffer([data]); }
+	
+	var cmd = new Buffer([this.CMDS.W_TX_PAYLOAD]);
+	var txbuf = Buffer.concat([cmd, data]);
+	// pulling ce low to write data to device
+	this.ce(0, function(){
+		// write data to device
+		this.spi.write(txbuf, function(buf){
+			console.log("written data...");
+		});
+		// pulling ce hi (really short...) to activate tx mode
+		this.ce(1, function() {
+			this.ce(0);
+		});
+	});
 }
 
 
@@ -24,7 +50,7 @@ RF.prototype.readRegister = function(addr, numDataBytes, callback) {
 	// copy rxbuf because it needs to be the same length (why not use spi.write here, would be the same...)
 	var rxbuf = txbuf;
 	// invoke spi, hand over to callback
-	spi.transfer(txbuf, rxbuf, function(dev, buf) {
+	this.spi.transfer(txbuf, rxbuf, function(dev, buf) {
 		console.log("wrote data, read register content is " + buf);
 		callback(buf);
 	});
@@ -41,7 +67,7 @@ RF.prototype.setRegister = function(addr, data, callback) {
 	
 	var txbuf = Buffer.concat([cmdbyte, data]);
 	
-	spi.write(txbuf, function (dev, buf) {
+	this.spi.write(txbuf, function (dev, buf) {
 		console.log("successfully written data, cmd was: " + txbuf);
 	})
 }
@@ -270,6 +296,11 @@ RF.prototype.addrToBuf = function (addr) {
 	for (var i=0; i < addr.length; i++) {
 		addr[i] = addr & (0xff << i);
 	};
+}
+
+// Helper: control ce
+RF.prototype.ce = function (val, fn) {
+	gpio.write(18, val, fn);
 }
 
 
