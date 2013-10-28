@@ -105,9 +105,12 @@ RF.prototype.setRxAddress = function (pipe, addr) {
 					console.log("lalala set rx address...");
 				})
 			} else {
-				
+				// set only lsb
+				var buf = new Buffer([addrBuf[0]]);
+				this.setRegister(this.RADDR.RX_ADDR_P0 + pipe, addrBuf, function() {
+					console.log("lalala set rx address...");
+				});
 			}
-			this.setRegister(this.RADDR.RX_ADDR_P0 + pipe, )
 		});
 	});
 	
@@ -201,16 +204,16 @@ RF.prototype.setTxAddress = function (addr) {
 
 
 RF.CMDS = {
-	RF.R_REGISTER: 0x00, // 000A AAAA -> AAAAA is the register address
-	RF.W_REGISTER: 0x20, // 001A AAAA -> s.o.
-	RF.R_RX_PAYLOAD: 0x61, // 0110 0001, read RX payload
-	RF.W_TX_PAYLOAD: 0xA0, // 1010 0000, write TX payload
-	RF.FLUSH_TX: 0xE1, // 1110 0001;
-	RF.FLUSH_RX: 0xE2, // 1110 0010;
-	RF.R_RX_PL_WID: 0x60, // 0110 0000; Read RX payload width
-	RF.W_ACK_PAYLOAD: 0xA8, // 1010 1PPP; P is a pipe...
-	RF.W_TX_PAYLOAD_NO_ACK: 0xB0, // 1011 0000; No ack on next packet...
-	RF.NOP: 0xFF, // NO OPERATION! Love this! (Used to read out status byte...)
+	R_REGISTER: 0x00, // 000A AAAA -> AAAAA is the register address
+	W_REGISTER: 0x20, // 001A AAAA -> s.o.
+	R_RX_PAYLOAD: 0x61, // 0110 0001, read RX payload
+	W_TX_PAYLOAD: 0xA0, // 1010 0000, write TX payload
+	FLUSH_TX: 0xE1, // 1110 0001;
+	FLUSH_RX: 0xE2, // 1110 0010;
+	R_RX_PL_WID: 0x60, // 0110 0000; Read RX payload width
+	W_ACK_PAYLOAD: 0xA8, // 1010 1PPP; P is a pipe...
+	W_TX_PAYLOAD_NO_ACK: 0xB0, // 1011 0000; No ack on next packet...
+	NOP: 0xFF, // NO OPERATION! Love this! (Used to read out status byte...)
 };
 
 // don't know how to deal with this stuff yet... see here:
@@ -243,18 +246,18 @@ RF.RADDR = {
 	FIFO_STATUS: 0x17, // fifo status... duh
 	DYNPD: 		0x1C,	// enable dynamic payload on pipes (disabled by default!)
 	FEATURE: 	0x1D, // special features :-) (dynamic payload, ack payload)
-}
+};
 
 RF.BITMASKS = {
 	EN_CRC: 	parseInt("00001000", 2),
 	CRCO: 		parseInt("00000100", 2),
 	RF_DR_LOW: 	parseInt("00010000", 2),
 	RF_DR_HIGH:	parseInt("00000100", 2),
-}
+};
 
 
 // Helper function to set specific bit (mask) in byte (byte) to bool value (value)
-function RF.prototype.setBit(byte, mask, value) {
+RF.prototype.setBit = function (byte, mask, value) {
 	var retByte;
 	if(value == 1) { retByte = byte | mask; };
 	if(value == 0) { retByte = byte & ~mask; };
@@ -262,7 +265,7 @@ function RF.prototype.setBit(byte, mask, value) {
 }
 
 // Helper: calc address to 5-byte-buffer-thingy, lsb first
-function RF.prototype.addrToBuf(addr) {
+RF.prototype.addrToBuf = function (addr) {
 	var addr = new Buffer(5);
 	for (var i=0; i < addr.length; i++) {
 		addr[i] = addr & (0xff << i);
