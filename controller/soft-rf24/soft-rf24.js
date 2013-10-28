@@ -79,33 +79,104 @@ function RF.prototype.setAddrWidth(width) {
 	});
 }
 
-// recv address of specific pipe
-function RF.prototype.rx_pipe_addr(pipe, addr) {
+// receiving address of specific pipe
+// RF.RADDR.EN_RXADDR + RX_ADDR_Pn
+function RF.prototype.setRxAddress(pipe, addr) {
+	// read register of active pipes  (EN_RXADDR)
+	this.readRegister(this.RADDR.EN_RXADDR, 1, function(buf) {
+		var currentConf = buf[1];
+		// activate pipe (EN_RXADDR)
+		var mask = 1 << pipe; // pipe 0 => lsb, pipe 5 => 00100000...
+		var newConf = this.setBit(currentConf, mask, 1);
+		this.setRegister(this.RADDR.EN_RXADDR, newConf, function(){
+			console.log("Activated pipe" + pipe + "(mask "+mask.toString(2)+")");
+			// set address (RX_ADDR_Pn)
+			// address must be of correct length, so .setAddrWidth first
+			// for pipe 2 to 5 one can only set the lsb, the rest is the same as in pipe 1
+			// calc addr: dec to hex, but lsb first!?...laterbitches...
+			this.setRegister(this.RADDR.RX_ADDR_P0 + pipe, )
+		});
+	});
 	
 }
 
 // set radio channel (0..125)
-function RF.prototype.channel(channel) {
-	
+// RF.RADDR.RF_CH
+function RF.prototype.setChannel(channel) {
+	this.setRegister(this.RADDR.RF_CH, channel, function() {
+		console.log("Set channel to" + channel);
+	})
 }
 
 // set data rate (0..2, 250k..2M)
-function RF.prototype.tx_rate(rate) {
-	// body...
+// RF.RADDR.RF_SETUP
+function RF.prototype.setRate(rate) {
+	// read register
+	this.readRegister(this.RADDR.RF_SETUP, 1, function(buf) {
+		var currentConf = buf[1];
+		// this register is a bit strange...:
+		// 250k	bit RF_DR_LOW=>1, bit RF_DR_HIGH=>0
+		// 1m	bit RF_DR_LOW=>0, bit RF_DR_HIGH=>0
+		// 2m	bit RF_DR_LOW=>0, bit RF_DR_HIGH=>1
+		var newConf;
+		if(rate == 0) {
+			newConf = this.setBit(currentConf, this.BITMASKS.RF_DR_LOW, 1);
+			newConf = this.setBit(currentConf, this.BITMASKS.RF_DR_HIGH, 0);
+		}
+		if (rate == 1) {
+			newConf = this.setBit(currentConf, this.BITMASKS.RF_DR_LOW, 0);
+			newConf = this.setBit(currentConf, this.BITMASKS.RF_DR_HIGH, 0);
+		}
+		if (rate == 2) {
+			newConf = this.setBit(currentConf, this.BITMASKS.RF_DR_LOW, 0);
+			newConf = this.setBit(currentConf, this.BITMASKS.RF_DR_HIGH, 1);
+		}
+		this.setRegister(this.RADDR.RF_SETUP, newConf, function(){
+			console.log("Set rf-rate to " + rate);
+		});
+	});
 }
 
-// set output power (0..4)
-function RF.prototype.tx_power(power) {
-	// body...
+// set output power (0..3)
+// RF.RADDR.RF_SETUP
+function RF.prototype.setPower(power) {
+	// read register
+	this.readRegister(this.RADDR.RF_SETUP, 1, function(buf) {
+		var currentConf = buf[1];
+		var newConf;
+		// obviously I don't really know how to handle bitmasks. Here I have to set
+		// bit 2 and 1 to the binary value of power. I don't know how to do that less complicated...
+		// mask for msb
+		var mask1 = parseInt("00000100", 2);
+		// mask for lsb
+		var mask2 = parseInt("00000010", 2);
+		// calc and set msb
+		newConf = this.setBit(currentConf, mask1, (power >= 2) & 1);
+		// calc and set lsb
+		newConf = this.setBit(currentConf, mask2, power % 2);
+		// write register
+		this.setRegister(this.RADDR.RF_SETUP, newConf, function(){
+			console.log("Set rf-power to " + rate);
+		});
+	});
 }
 
 // manage auto-ack on specific pipe
-function RF.prototype.autoack(pipe, active) {
-	// body...
+// RF.RADDR.EN_AA + bit 5 to 0 for the 6 pipes
+function RF.prototype.setAutoAck(pipe, active) {
+	this.readRegister(this.RADDR.EN_AA, 1, function(buf) {
+		var currentConf = buf[1];
+		var mask = 1 << pipe; // pipe 0 => lsb, pipe 5 => 00100000...
+		var newConf = this.setBit(currentConf, mask, active);
+		this.setRegister(this.RADDR.EN_AA, newConf, function(){
+			console.log("Set Autoack on pipe" + pipe + " to "+active+"(mask:"+mask.toString(2)+")");
+		});
+	});
 }
 
 // set transmission address
-function RF.prototype.tx_address (addr) {
+// RF.RADDR.TX_ADDR
+function RF.prototype.setTxAddress (addr) {
 	
 }
 
@@ -161,7 +232,8 @@ RF.RADDR = {
 RF.BITMASKS = {
 	EN_CRC: 	parseInt("00001000", 2),
 	CRCO: 		parseInt("00000100", 2),
-	
+	RF_DR_LOW: 	parseInt("00010000", 2),
+	RF_DR_HIGH:	parseInt("00000100", 2),
 }
 
 
