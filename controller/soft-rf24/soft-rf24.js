@@ -3,10 +3,12 @@
 // NOT IN A WORKING STATE YET!!!!
 
 var spi = require('spi');
+var gpio = require('rpi-gpio');
+
 
 // constructor
 // conntects to rf via spi-device given in path (on rpi: /dev/spidev0.0 or 0.1);
-function RF(spiPath) = {
+function RF(spiPath) {
 	this.device = new spi.Spi(spiPath);
 	this.device.open();
 }
@@ -17,7 +19,7 @@ RF.prototype.readRegister = function(addr, numDataBytes, callback) {
 	// ANDing addr with read command
 	var cmd = new Buffer(this.R_REGISTER & addr);
 	// padding with null bytes to receive data bytes
-	var padbuf = new Buffer(numDataBytes)
+	var padbuf = new Buffer(numDataBytes);
 	var txbuf = Buffer.concat([cmd, padbuf]);
 	// copy rxbuf because it needs to be the same length (why not use spi.write here, would be the same...)
 	var rxbuf = txbuf;
@@ -34,7 +36,10 @@ RF.prototype.setRegister = function(addr, data, callback) {
 	// erm...
 	// just set data bytes here, take care of not overwriting flags somewhere else...
 	var cmdbyte = this.W_REGISTER & addr;
-	var txbuf = new Buffer([cmdbyte, data]);
+	// check if data is buffer, if not make it one
+	if(data.length == undefined) { data = new Buffer([data]); }
+	
+	var txbuf = Buffer.concat([cmdbyte, data]);
 	
 	spi.write(txbuf, function (dev, buf) {
 		console.log("successfully written data, cmd was: " + txbuf);
@@ -43,12 +48,12 @@ RF.prototype.setRegister = function(addr, data, callback) {
 
 
 // send a data packet of 1 to 32 bytes
-function RF.prototype.transmit (buffer) {
+RF.prototype.transmit = function (buffer) {
 	
 }
 
 // check for incoming data and read it
-function RF.prototype.receive (pipe, callback) {
+RF.prototype.receive = function (pipe, callback) {
 	var buffer;
 	
 	callback(buffer);
@@ -56,7 +61,7 @@ function RF.prototype.receive (pipe, callback) {
 
 // set crc mode; (bool)active and (int)mode (0 -> 1 byte, 1 -> 2 byte)
 // RF.RADDR.CONFIG + bit 3 and 2
-function RF.prototype.setCRC(active, mode) {
+RF.prototype.setCRC = function (active, mode) {
 	// read register
 	this.readRegister(this.RADDR.CONFIG, 1, function(buf) {
 		// buf[0] contains status byte I guess...
@@ -71,7 +76,7 @@ function RF.prototype.setCRC(active, mode) {
 
 // global address width (3 to 5 bytes)
 // RF.RADDR.SETUP_AW
-function RF.prototype.setAddrWidth(width) {
+RF.prototype.setAddrWidth = function (width) {
 	// just write width here because nothing else is stored in that register
 	width = width - 2; // assuming width is (int)3..5, this translates to (int)1..3 in the register
 	this.setRegister(this.RADDR.SETUP_AW, width, function() {
@@ -81,7 +86,7 @@ function RF.prototype.setAddrWidth(width) {
 
 // receiving address of specific pipe
 // RF.RADDR.EN_RXADDR + RX_ADDR_Pn
-function RF.prototype.setRxAddress(pipe, addr) {
+RF.prototype.setRxAddress = function (pipe, addr) {
 	// read register of active pipes  (EN_RXADDR)
 	this.readRegister(this.RADDR.EN_RXADDR, 1, function(buf) {
 		var currentConf = buf[1];
@@ -94,6 +99,14 @@ function RF.prototype.setRxAddress(pipe, addr) {
 			// address must be of correct length, so .setAddrWidth first
 			// for pipe 2 to 5 one can only set the lsb, the rest is the same as in pipe 1
 			// calc addr: dec to hex, but lsb first!?...laterbitches...
+			var addrBuf = this.addrToBuf(addr);
+			if(pipe < 2) {
+				this.setRegister(this.RADDR.RX_ADDR_P0 + pipe, addrBuf, function(){
+					console.log("lalala set rx address...");
+				})
+			} else {
+				
+			}
 			this.setRegister(this.RADDR.RX_ADDR_P0 + pipe, )
 		});
 	});
@@ -102,7 +115,7 @@ function RF.prototype.setRxAddress(pipe, addr) {
 
 // set radio channel (0..125)
 // RF.RADDR.RF_CH
-function RF.prototype.setChannel(channel) {
+RF.prototype.setChannel = function (channel) {
 	this.setRegister(this.RADDR.RF_CH, channel, function() {
 		console.log("Set channel to" + channel);
 	})
@@ -110,7 +123,7 @@ function RF.prototype.setChannel(channel) {
 
 // set data rate (0..2, 250k..2M)
 // RF.RADDR.RF_SETUP
-function RF.prototype.setRate(rate) {
+RF.prototype.setRate = function (rate) {
 	// read register
 	this.readRegister(this.RADDR.RF_SETUP, 1, function(buf) {
 		var currentConf = buf[1];
@@ -139,7 +152,7 @@ function RF.prototype.setRate(rate) {
 
 // set output power (0..3)
 // RF.RADDR.RF_SETUP
-function RF.prototype.setPower(power) {
+RF.prototype.setPower = function(power) {
 	// read register
 	this.readRegister(this.RADDR.RF_SETUP, 1, function(buf) {
 		var currentConf = buf[1];
@@ -163,7 +176,7 @@ function RF.prototype.setPower(power) {
 
 // manage auto-ack on specific pipe
 // RF.RADDR.EN_AA + bit 5 to 0 for the 6 pipes
-function RF.prototype.setAutoAck(pipe, active) {
+RF.prototype.setAutoAck = function(pipe, active) {
 	this.readRegister(this.RADDR.EN_AA, 1, function(buf) {
 		var currentConf = buf[1];
 		var mask = 1 << pipe; // pipe 0 => lsb, pipe 5 => 00100000...
@@ -176,8 +189,11 @@ function RF.prototype.setAutoAck(pipe, active) {
 
 // set transmission address
 // RF.RADDR.TX_ADDR
-function RF.prototype.setTxAddress (addr) {
-	
+RF.prototype.setTxAddress = function (addr) {
+	var addrBuf = this.addrToBuf(addr);
+	this.setRegister(this.RADDR.TX_ADDR, addrBuf, function(){
+		console.log("Set address to "+addr+"(buffer: "+addrBuf+")");
+	});
 }
 
 
@@ -243,6 +259,14 @@ function RF.prototype.setBit(byte, mask, value) {
 	if(value == 1) { retByte = byte | mask; };
 	if(value == 0) { retByte = byte & ~mask; };
 	return retByte;
+}
+
+// Helper: calc address to 5-byte-buffer-thingy, lsb first
+function RF.prototype.addrToBuf(addr) {
+	var addr = new Buffer(5);
+	for (var i=0; i < addr.length; i++) {
+		addr[i] = addr & (0xff << i);
+	};
 }
 
 
