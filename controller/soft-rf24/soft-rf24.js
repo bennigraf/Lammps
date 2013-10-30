@@ -18,7 +18,6 @@ function RF(spiPath, gpiopin) {
 	gpio.setup(gpiopin, gpio.DIR_OUT, function(){ 
 		console.log("gpio-output enabled!");
 	});
-	return this;
 }
 
 
@@ -305,7 +304,8 @@ RF.prototype.ce = function (val, fn) {
 }
 
 
-module.exports.RF = RF;
+module.exports = RF;
+// implies: RF = require('soft-rf24'); var rf = new RF();
 
 
 /*
