@@ -8,7 +8,8 @@ var gpio = require('rpi-gpio');
 
 // constructor
 // conntects to rf via spi-device given in path (on rpi: /dev/spidev0.0 or 0.1);
-function RF(spiPath, gpiopin = 18) {
+function RF(spiPath, gpiopin) {
+	if (typeof gpiopin === 'undefined') { gpiopin = 18; }
 	// start spi stuff
 	this.spi = new spi.Spi(spiPath);
 	this.spi.open();
