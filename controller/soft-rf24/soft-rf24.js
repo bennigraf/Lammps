@@ -304,6 +304,8 @@ RF.prototype.ce = function (val, fn) {
 }
 
 
+module.exports = RF;
+
 
 /*
 
