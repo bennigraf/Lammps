@@ -1,6 +1,6 @@
-require('../soft-rf24/soft-rf24.js');
+var RF = require('../soft-rf24/soft-rf24.js');
 
-var rf = new RF("/dev/spidev0.0");
+var rf = RF("/dev/spidev0.0");
 
 rf.setAddrWidth(5);
 rf.setTxAddress(4564468532);
