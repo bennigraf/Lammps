@@ -104,9 +104,10 @@ function sendstuff() {
 			
 			
 			setInterval(function() {
-				var r = (i % 3) & 0 * 255;
-				var g = (i % 3) & 1 * 255;
-				var b = (i % 3) & 2 * 255;
+				var r = (((i % 3) == 0) & 1) * 250/10;
+				var g = (((i % 3) == 1) & 1) * 250/10;
+				var b = (((i % 3) == 2) & 1) * 250/10;
+				console.log(r, g, b);
 				sendbuf([ 0xA0, 0x2D, 0x0+b, 0x0+g, 0x0+r ]);
 				ce(1, function(){ /*console.log("ende");*/ ce(0); });
 				
