@@ -20,7 +20,7 @@ function RF(spiPath, gpiopin = 18) {
 }
 
 
-RF.prototype.sendData = function(data) {
+RF.prototype.sendData = function(data, callback) {
 	// assuming data is already a buffer here, but just to be sure...
 	if(data.length == undefined) { data = new Buffer([data]); }
 	
@@ -31,11 +31,10 @@ RF.prototype.sendData = function(data) {
 		// write data to device
 		this.spi.write(txbuf, function(buf){
 			console.log("written data...");
+			callback(buf);
 		});
 		// pulling ce hi (really short...) to activate tx mode
-		this.ce(1, function() {
-			this.ce(0);
-		});
+		this.ce(1, function() { this.ce(0); });
 	});
 }
 
