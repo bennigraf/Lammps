@@ -63,6 +63,7 @@ RF.prototype.setRegister = function(addr, data, callback) {
 	// just set data bytes here, take care of not overwriting flags somewhere else...
 	var cmdbyte = new Buffer([this.W_REGISTER & addr]);
 	// check if data is buffer, if not make it one
+	console.log(data);
 	if(data.length == undefined) { data = new Buffer([data]); }
 	
 	var txbuf = Buffer.concat([cmdbyte, data]);
@@ -219,7 +220,9 @@ RF.prototype.setAutoAck = function(pipe, active) {
 // set transmission address
 // RF.RADDR.TX_ADDR
 RF.prototype.setTxAddress = function (addr) {
+	console.log(addr);
 	var addrBuf = this.addrToBuf(addr);
+	console.log(addrBuf);
 	this.setRegister(RF.RADDR.TX_ADDR, addrBuf, function(){
 		console.log("Set address to "+addr+"(buffer: "+addrBuf+")");
 	});
@@ -292,10 +295,11 @@ RF.prototype.setBit = function (byte, mask, value) {
 
 // Helper: calc address to 5-byte-buffer-thingy, lsb first
 RF.prototype.addrToBuf = function (addr) {
-	var addr = new Buffer(5);
-	for (var i=0; i < addr.length; i++) {
-		addr[i] = addr & (0xff << i);
+	var addrBuf = new Buffer(5);
+	for (var i=0; i < addrBuf.length; i++) {
+		addrBuf[i] = addr & (0xff << i);
 	};
+	return addrBuf;
 }
 
 // Helper: control ce
