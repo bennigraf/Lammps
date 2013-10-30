@@ -2,7 +2,7 @@ var RF = require('../soft-rf24/soft-rf24.js');
 
 console.log(RF);
 
-var rf = RF.RF("/dev/spidev0.0");
+var rf = new RF("/dev/spidev0.0");
 
 console.log(rf);
 
