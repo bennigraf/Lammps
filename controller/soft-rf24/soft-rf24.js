@@ -89,13 +89,13 @@ RF.prototype.receive = function (pipe, callback) {
 // RF.RADDR.CONFIG + bit 3 and 2
 RF.prototype.setCRC = function (active, mode) {
 	// read register
-	this.readRegister(this.RADDR.CONFIG, 1, function(buf) {
+	this.readRegister(RF.RADDR.CONFIG, 1, function(buf) {
 		// buf[0] contains status byte I guess...
 		var currentConf = buf[1];
-		var newConf = this.setBit(currentConf, this.BITMASKS.EN_CRC, active);
-		newConf = this.setBit(newConf, this.BITMASKS.CRCO, mode);
-		this.setRegister(this.RADDR.CONFIG, newConf, function(){
-			console.log("Set register" + this.RADDR.CONFIG + "to data" + newConf);
+		var newConf = this.setBit(currentConf, RF.BITMASKS.EN_CRC, active);
+		newConf = this.setBit(newConf, RF.BITMASKS.CRCO, mode);
+		this.setRegister(RF.RADDR.CONFIG, newConf, function(){
+			console.log("Set register" + RF.RADDR.CONFIG + "to data" + newConf);
 		});
 	});
 }
@@ -114,12 +114,12 @@ RF.prototype.setAddrWidth = function (width) {
 // RF.RADDR.EN_RXADDR + RX_ADDR_Pn
 RF.prototype.setRxAddress = function (pipe, addr) {
 	// read register of active pipes  (EN_RXADDR)
-	this.readRegister(this.RADDR.EN_RXADDR, 1, function(buf) {
+	this.readRegister(RF.RADDR.EN_RXADDR, 1, function(buf) {
 		var currentConf = buf[1];
 		// activate pipe (EN_RXADDR)
 		var mask = 1 << pipe; // pipe 0 => lsb, pipe 5 => 00100000...
 		var newConf = this.setBit(currentConf, mask, 1);
-		this.setRegister(this.RADDR.EN_RXADDR, newConf, function(){
+		this.setRegister(RF.RADDR.EN_RXADDR, newConf, function(){
 			console.log("Activated pipe" + pipe + "(mask "+mask.toString(2)+")");
 			// set address (RX_ADDR_Pn)
 			// address must be of correct length, so .setAddrWidth first
@@ -127,13 +127,13 @@ RF.prototype.setRxAddress = function (pipe, addr) {
 			// calc addr: dec to hex, but lsb first!?...laterbitches...
 			var addrBuf = this.addrToBuf(addr);
 			if(pipe < 2) {
-				this.setRegister(this.RADDR.RX_ADDR_P0 + pipe, addrBuf, function(){
+				this.setRegister(RF.RADDR.RX_ADDR_P0 + pipe, addrBuf, function(){
 					console.log("lalala set rx address...");
 				})
 			} else {
 				// set only lsb
 				var buf = new Buffer([addrBuf[0]]);
-				this.setRegister(this.RADDR.RX_ADDR_P0 + pipe, addrBuf, function() {
+				this.setRegister(RF.RADDR.RX_ADDR_P0 + pipe, addrBuf, function() {
 					console.log("lalala set rx address...");
 				});
 			}
@@ -145,7 +145,7 @@ RF.prototype.setRxAddress = function (pipe, addr) {
 // set radio channel (0..125)
 // RF.RADDR.RF_CH
 RF.prototype.setChannel = function (channel) {
-	this.setRegister(this.RADDR.RF_CH, channel, function() {
+	this.setRegister(RF.RADDR.RF_CH, channel, function() {
 		console.log("Set channel to" + channel);
 	})
 }
@@ -154,7 +154,7 @@ RF.prototype.setChannel = function (channel) {
 // RF.RADDR.RF_SETUP
 RF.prototype.setRate = function (rate) {
 	// read register
-	this.readRegister(this.RADDR.RF_SETUP, 1, function(buf) {
+	this.readRegister(RF.RADDR.RF_SETUP, 1, function(buf) {
 		var currentConf = buf[1];
 		// this register is a bit strange...:
 		// 250k	bit RF_DR_LOW=>1, bit RF_DR_HIGH=>0
@@ -162,18 +162,18 @@ RF.prototype.setRate = function (rate) {
 		// 2m	bit RF_DR_LOW=>0, bit RF_DR_HIGH=>1
 		var newConf;
 		if(rate == 0) {
-			newConf = this.setBit(currentConf, this.BITMASKS.RF_DR_LOW, 1);
-			newConf = this.setBit(currentConf, this.BITMASKS.RF_DR_HIGH, 0);
+			newConf = this.setBit(currentConf, RF.BITMASKS.RF_DR_LOW, 1);
+			newConf = this.setBit(currentConf, RF.BITMASKS.RF_DR_HIGH, 0);
 		}
 		if (rate == 1) {
-			newConf = this.setBit(currentConf, this.BITMASKS.RF_DR_LOW, 0);
-			newConf = this.setBit(currentConf, this.BITMASKS.RF_DR_HIGH, 0);
+			newConf = this.setBit(currentConf, RF.BITMASKS.RF_DR_LOW, 0);
+			newConf = this.setBit(currentConf, RF.BITMASKS.RF_DR_HIGH, 0);
 		}
 		if (rate == 2) {
-			newConf = this.setBit(currentConf, this.BITMASKS.RF_DR_LOW, 0);
-			newConf = this.setBit(currentConf, this.BITMASKS.RF_DR_HIGH, 1);
+			newConf = this.setBit(currentConf, RF.BITMASKS.RF_DR_LOW, 0);
+			newConf = this.setBit(currentConf, RF.BITMASKS.RF_DR_HIGH, 1);
 		}
-		this.setRegister(this.RADDR.RF_SETUP, newConf, function(){
+		this.setRegister(RF.RADDR.RF_SETUP, newConf, function(){
 			console.log("Set rf-rate to " + rate);
 		});
 	});
@@ -183,7 +183,7 @@ RF.prototype.setRate = function (rate) {
 // RF.RADDR.RF_SETUP
 RF.prototype.setPower = function(power) {
 	// read register
-	this.readRegister(this.RADDR.RF_SETUP, 1, function(buf) {
+	this.readRegister(RF.RADDR.RF_SETUP, 1, function(buf) {
 		var currentConf = buf[1];
 		var newConf;
 		// obviously I don't really know how to handle bitmasks. Here I have to set
@@ -197,7 +197,7 @@ RF.prototype.setPower = function(power) {
 		// calc and set lsb
 		newConf = this.setBit(currentConf, mask2, power % 2);
 		// write register
-		this.setRegister(this.RADDR.RF_SETUP, newConf, function(){
+		this.setRegister(RF.RADDR.RF_SETUP, newConf, function(){
 			console.log("Set rf-power to " + rate);
 		});
 	});
@@ -206,11 +206,11 @@ RF.prototype.setPower = function(power) {
 // manage auto-ack on specific pipe
 // RF.RADDR.EN_AA + bit 5 to 0 for the 6 pipes
 RF.prototype.setAutoAck = function(pipe, active) {
-	this.readRegister(this.RADDR.EN_AA, 1, function(buf) {
+	this.readRegister(RF.RADDR.EN_AA, 1, function(buf) {
 		var currentConf = buf[1];
 		var mask = 1 << pipe; // pipe 0 => lsb, pipe 5 => 00100000...
 		var newConf = this.setBit(currentConf, mask, active);
-		this.setRegister(this.RADDR.EN_AA, newConf, function(){
+		this.setRegister(RF.RADDR.EN_AA, newConf, function(){
 			console.log("Set Autoack on pipe" + pipe + " to "+active+"(mask:"+mask.toString(2)+")");
 		});
 	});
@@ -220,7 +220,7 @@ RF.prototype.setAutoAck = function(pipe, active) {
 // RF.RADDR.TX_ADDR
 RF.prototype.setTxAddress = function (addr) {
 	var addrBuf = this.addrToBuf(addr);
-	this.setRegister(this.RADDR.TX_ADDR, addrBuf, function(){
+	this.setRegister(RF.RADDR.TX_ADDR, addrBuf, function(){
 		console.log("Set address to "+addr+"(buffer: "+addrBuf+")");
 	});
 }
