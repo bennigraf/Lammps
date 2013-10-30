@@ -61,7 +61,7 @@ RF.prototype.readRegister = function(addr, numDataBytes, callback) {
 RF.prototype.setRegister = function(addr, data, callback) {
 	// erm...
 	// just set data bytes here, take care of not overwriting flags somewhere else...
-	var cmdbyte = this.W_REGISTER & addr;
+	var cmdbyte = new Buffer([this.W_REGISTER & addr]);
 	// check if data is buffer, if not make it one
 	if(data.length == undefined) { data = new Buffer([data]); }
 	
