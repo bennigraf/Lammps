@@ -1,10 +1,8 @@
 var RF = require('../soft-rf24/soft-rf24.js');
 
-console.log(RF);
 
 var rf = new RF("/dev/spidev0.0");
 
-console.log(rf);
 
 rf.setAddrWidth(5);
 rf.setTxAddress(4564468532);
