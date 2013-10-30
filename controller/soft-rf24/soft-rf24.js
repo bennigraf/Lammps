@@ -2,14 +2,36 @@
 
 // NOT IN A WORKING STATE YET!!!!
 
-var spi = require('spi');
-var gpio = require('rpi-gpio');
+
+
+module.exports = RF;
+// implies: RF = require('soft-rf24'); var rf = new RF();
+
+
+// using these loaders here to be able to do development & some testing on non-rpi-hardware...
+var spi;
+var gpio;
+try {
+	spi = require('spi');
+} catch (e) {
+	console.log("SPI COULD NOT BE LOADED! Using fake spi module for testing purposes..");
+	console.log(e)
+	spi = require('./fake-spi.js');
+}
+try {
+	gpio = require('rpi-gpio');
+} catch (e) {
+	console.log("GPIO COULD NOT BE LOADED! Using fake spi module for testing purposes..");
+	console.log(e);
+	gpio = require('./fake-gpio.js');
+}
 
 
 // constructor
 // conntects to rf via spi-device given in path (on rpi: /dev/spidev0.0 or 0.1);
 function RF(spiPath, gpiopin) {
 	if (typeof gpiopin === 'undefined') { gpiopin = 18; }
+	
 	// start spi stuff
 	this.spi = new spi.Spi(spiPath);
 	this.spi.open();
@@ -22,20 +44,22 @@ function RF(spiPath, gpiopin) {
 
 
 RF.prototype.sendData = function(data, callback) {
+	var self = this;
 	// assuming data is already a buffer here, but just to be sure...
 	if(data.length == undefined) { data = new Buffer([data]); }
-	
-	var cmd = new Buffer([this.CMDS.W_TX_PAYLOAD]);
+	var cmd = new Buffer([RF.CMDS.W_TX_PAYLOAD]);
 	var txbuf = Buffer.concat([cmd, data]);
 	// pulling ce low to write data to device
 	this.ce(0, function(){
 		// write data to device
-		this.spi.write(txbuf, function(buf){
+		self.spi.write(txbuf, function(buf){
 			console.log("written data...");
-			callback(buf);
+			if(callback) {
+				callback(buf);
+			};
 		});
 		// pulling ce hi (really short...) to activate tx mode
-		this.ce(1, function() { this.ce(0); });
+		self.ce(1, function() { self.ce(0); });
 	});
 }
 
@@ -61,15 +85,15 @@ RF.prototype.readRegister = function(addr, numDataBytes, callback) {
 RF.prototype.setRegister = function(addr, data, callback) {
 	// erm...
 	// just set data bytes here, take care of not overwriting flags somewhere else...
-	var cmdbyte = new Buffer([this.W_REGISTER & addr]);
+	var cmdbyte = new Buffer([RF.CMDS.W_REGISTER + addr]);
 	// check if data is buffer, if not make it one
-	console.log(data);
 	if(data.length == undefined) { data = new Buffer([data]); }
 	
 	var txbuf = Buffer.concat([cmdbyte, data]);
 	
 	this.spi.write(txbuf, function (dev, buf) {
 		console.log("successfully written data, cmd was: " + txbuf);
+		if(callback) { callback(buf) };
 	})
 }
 
@@ -89,13 +113,14 @@ RF.prototype.receive = function (pipe, callback) {
 // set crc mode; (bool)active and (int)mode (0 -> 1 byte, 1 -> 2 byte)
 // RF.RADDR.CONFIG + bit 3 and 2
 RF.prototype.setCRC = function (active, mode) {
+	var self = this;
 	// read register
 	this.readRegister(RF.RADDR.CONFIG, 1, function(buf) {
 		// buf[0] contains status byte I guess...
 		var currentConf = buf[1];
-		var newConf = this.setBit(currentConf, RF.BITMASKS.EN_CRC, active);
-		newConf = this.setBit(newConf, RF.BITMASKS.CRCO, mode);
-		this.setRegister(RF.RADDR.CONFIG, newConf, function(){
+		var newConf = self.setBit(currentConf, RF.BITMASKS.EN_CRC, active);
+		newConf = self.setBit(newConf, RF.BITMASKS.CRCO, mode);
+		self.setRegister(RF.RADDR.CONFIG, newConf, function(){
 			console.log("Set register" + RF.RADDR.CONFIG + "to data" + newConf);
 		});
 	});
@@ -155,6 +180,7 @@ RF.prototype.setChannel = function (channel) {
 // RF.RADDR.RF_SETUP
 RF.prototype.setRate = function (rate) {
 	// read register
+	var self = this;
 	this.readRegister(RF.RADDR.RF_SETUP, 1, function(buf) {
 		var currentConf = buf[1];
 		// this register is a bit strange...:
@@ -163,18 +189,18 @@ RF.prototype.setRate = function (rate) {
 		// 2m	bit RF_DR_LOW=>0, bit RF_DR_HIGH=>1
 		var newConf;
 		if(rate == 0) {
-			newConf = this.setBit(currentConf, RF.BITMASKS.RF_DR_LOW, 1);
-			newConf = this.setBit(currentConf, RF.BITMASKS.RF_DR_HIGH, 0);
+			newConf = self.setBit(currentConf, RF.BITMASKS.RF_DR_LOW, 1);
+			newConf = self.setBit(currentConf, RF.BITMASKS.RF_DR_HIGH, 0);
 		}
 		if (rate == 1) {
-			newConf = this.setBit(currentConf, RF.BITMASKS.RF_DR_LOW, 0);
-			newConf = this.setBit(currentConf, RF.BITMASKS.RF_DR_HIGH, 0);
+			newConf = self.setBit(currentConf, RF.BITMASKS.RF_DR_LOW, 0);
+			newConf = self.setBit(currentConf, RF.BITMASKS.RF_DR_HIGH, 0);
 		}
 		if (rate == 2) {
-			newConf = this.setBit(currentConf, RF.BITMASKS.RF_DR_LOW, 0);
-			newConf = this.setBit(currentConf, RF.BITMASKS.RF_DR_HIGH, 1);
+			newConf = self.setBit(currentConf, RF.BITMASKS.RF_DR_LOW, 0);
+			newConf = self.setBit(currentConf, RF.BITMASKS.RF_DR_HIGH, 1);
 		}
-		this.setRegister(RF.RADDR.RF_SETUP, newConf, function(){
+		self.setRegister(RF.RADDR.RF_SETUP, newConf, function(){
 			console.log("Set rf-rate to " + rate);
 		});
 	});
@@ -183,6 +209,7 @@ RF.prototype.setRate = function (rate) {
 // set output power (0..3)
 // RF.RADDR.RF_SETUP
 RF.prototype.setPower = function(power) {
+	var self = this;
 	// read register
 	this.readRegister(RF.RADDR.RF_SETUP, 1, function(buf) {
 		var currentConf = buf[1];
@@ -194,12 +221,12 @@ RF.prototype.setPower = function(power) {
 		// mask for lsb
 		var mask2 = parseInt("00000010", 2);
 		// calc and set msb
-		newConf = this.setBit(currentConf, mask1, (power >= 2) & 1);
+		newConf = self.setBit(currentConf, mask1, (power >= 2) & 1);
 		// calc and set lsb
-		newConf = this.setBit(currentConf, mask2, power % 2);
+		newConf = self.setBit(currentConf, mask2, power % 2);
 		// write register
-		this.setRegister(RF.RADDR.RF_SETUP, newConf, function(){
-			console.log("Set rf-power to " + rate);
+		self.setRegister(RF.RADDR.RF_SETUP, newConf, function(){
+			console.log("Set rf-power to " + power);
 		});
 	});
 }
@@ -207,11 +234,12 @@ RF.prototype.setPower = function(power) {
 // manage auto-ack on specific pipe
 // RF.RADDR.EN_AA + bit 5 to 0 for the 6 pipes
 RF.prototype.setAutoAck = function(pipe, active) {
+	var self = this;
 	this.readRegister(RF.RADDR.EN_AA, 1, function(buf) {
 		var currentConf = buf[1];
 		var mask = 1 << pipe; // pipe 0 => lsb, pipe 5 => 00100000...
-		var newConf = this.setBit(currentConf, mask, active);
-		this.setRegister(RF.RADDR.EN_AA, newConf, function(){
+		var newConf = self.setBit(currentConf, mask, active);
+		self.setRegister(RF.RADDR.EN_AA, newConf, function(){
 			console.log("Set Autoack on pipe" + pipe + " to "+active+"(mask:"+mask.toString(2)+")");
 		});
 	});
@@ -220,11 +248,9 @@ RF.prototype.setAutoAck = function(pipe, active) {
 // set transmission address
 // RF.RADDR.TX_ADDR
 RF.prototype.setTxAddress = function (addr) {
-	console.log(addr);
 	var addrBuf = this.addrToBuf(addr);
-	console.log(addrBuf);
 	this.setRegister(RF.RADDR.TX_ADDR, addrBuf, function(){
-		console.log("Set address to "+addr+"(buffer: "+addrBuf+")");
+		// console.log("Set address to "+addr+" (buffer: "+addrBuf+")");
 	});
 }
 
@@ -316,8 +342,6 @@ RF.prototype.ce = function (val, fn) {
 }
 
 
-module.exports = RF;
-// implies: RF = require('soft-rf24'); var rf = new RF();
 
 
 /*
