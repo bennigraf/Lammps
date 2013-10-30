@@ -295,11 +295,19 @@ RF.prototype.setBit = function (byte, mask, value) {
 
 // Helper: calc address to 5-byte-buffer-thingy, lsb first
 RF.prototype.addrToBuf = function (addr) {
-	var addrBuf = new Buffer(5);
-	for (var i=0; i < addrBuf.length; i++) {
-		addrBuf[i] = addr & (0xff << i);
-	};
-	return addrBuf;
+	var buf = new Buffer(8);
+	buf.fill(0x00);
+	// convert (Number)addr to 32bit int, throw away msbs
+	var laddr = addr & 0xffffffff; // laddr represents the 4 lsbs
+	// calculate value of msbs of virtual 64bit int
+	var baddr = addr - laddr;
+	// mathematically shift 64bit msbs 32 bits to the right
+	var baddrShift = baddr / Math.pow(2, 32);
+	// write both to buffer
+	buf.writeUInt32LE(laddr, 0);
+	buf.writeUInt32LE(baddrShift, 4);
+	buf = buf.slice(0, 5);
+	return buf;
 }
 
 // Helper: control ce
