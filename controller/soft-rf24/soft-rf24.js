@@ -105,7 +105,7 @@ RF.prototype.setCRC = function (active, mode) {
 RF.prototype.setAddrWidth = function (width) {
 	// just write width here because nothing else is stored in that register
 	width = width - 2; // assuming width is (int)3..5, this translates to (int)1..3 in the register
-	this.setRegister(this.RADDR.SETUP_AW, width, function() {
+	this.setRegister(RF.RADDR.SETUP_AW, width, function() {
 		console.log("New addr width set to mode: " + width);
 	});
 }
