@@ -18,6 +18,7 @@ function RF(spiPath, gpiopin) {
 	gpio.setup(gpiopin, gpio.DIR_OUT, function(){ 
 		console.log("gpio-output enabled!");
 	});
+	return this;
 }
 
 
@@ -304,7 +305,7 @@ RF.prototype.ce = function (val, fn) {
 }
 
 
-module.exports = RF;
+module.exports.RF = RF;
 
 
 /*
