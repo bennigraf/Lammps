@@ -86,21 +86,32 @@ function sendstuff() {
 			sendbuf([ 0x20 + 0x11, 0x04 ]);
 			sendbuf([ 0x20 + 0x06, 0x07 ]);
 			sendbuf([ 0x20 + 0x00, 0x0E ]);
-			sendbuf([ 0x20 + 0x0A,0x34, 0x43, 0x10, 0x10, 0x01 ]);
+			sendbuf([ 0x20 + 0x0A, 0x34, 0x43, 0x10, 0x10, 0x01 ]);
 			
 			var i = 0;
-			setInterval(function(){
-				// console.log("sending shit");
-				// ce(0, function(){console.log("anfang")});
-				var ph = i / Math.PI;
-				var r = Math.round((Math.sin(ph)/2+0.5) * 250);
-				var g = Math.round((Math.sin(ph + 1)/2+0.5) * 250);
-				var b = Math.round((Math.sin(ph + 2)/2+0.5) * 250);
-				sendbuf([ 0xA0, 0x2D, 0x01+b, 0x01+g, 0x01+r ]);
+			// setInterval(function(){
+			// 	// console.log("sending shit");
+			// 	// ce(0, function(){console.log("anfang")});
+			// 	var ph = i / Math.PI;
+			// 	var r = Math.round((Math.sin(ph)/2+0.5) * 250);
+			// 	var g = Math.round((Math.sin(ph + 1)/2+0.5) * 250);
+			// 	var b = Math.round((Math.sin(ph + 2)/2+0.5) * 250);
+			// 	sendbuf([ 0xA0, 0x2D, 0x01+b, 0x01+g, 0x01+r ]);
+			// 	ce(1, function(){ /*console.log("ende");*/ ce(0); });
+			// 	
+			// 	i = i + 0.1;
+			// }, 20);
+			
+			
+			setInterval(function() {
+				var r = (i % 3) & 0 * 255;
+				var g = (i % 3) & 1 * 255;
+				var b = (i % 3) & 2 * 255;
+				sendbuf([ 0xA0, 0x2D, 0x0+b, 0x0+g, 0x0+r ]);
 				ce(1, function(){ /*console.log("ende");*/ ce(0); });
 				
-				i = i + 0.1;
-			}, 20);
+				i = i + 1;
+			}, 500);
 
 
 		// }, 100);
