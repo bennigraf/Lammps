@@ -3,10 +3,13 @@
 // NOT IN A WORKING STATE YET!!!!
 
 
-
 module.exports = RF;
 // implies: RF = require('soft-rf24'); var rf = new RF();
 
+// getting event stuff...
+var util = require("util");
+var events = require("events");
+util.inherits(RF, events.EventEmitter); // yay, events!
 
 // using these loaders here to be able to do development & some testing on non-rpi-hardware...
 var spi;
@@ -31,6 +34,7 @@ try {
 // conntects to rf via spi-device given in path (on rpi: /dev/spidev0.0 or 0.1);
 function RF(spiPath, gpiopin) {
 	if (typeof gpiopin === 'undefined') { gpiopin = 18; }
+	events.EventEmitter.call(this);
 	
 	// start spi stuff
 	this.spi = new spi.Spi(spiPath);
@@ -40,9 +44,93 @@ function RF(spiPath, gpiopin) {
 	gpio.setup(gpiopin, gpio.DIR_OUT, function(){ 
 		console.log("gpio-output enabled!");
 	});
+	
+	// helper variables...
+	this.polling = false; // true if polling of data is occuring, to not overflow pipe...
+	this.txfifo; // holds output fifo when in automode...
+}
+
+/*
+fancy magic auto mode:
+----------------------
+
+By default, be in receiver mode, check constantly for incoming data on all 
+active pipes/addresses (maybe use irq for this when possible)
+
+Send data using a FIFO!! 
+* Pile up data to send in fifo
+* If there is data available, go into tx mode and send it
+* if there is no data/last data was sent, go back to rx mode
+
+*/ 
+RF.prototype.startAutoMode = function() {
+	// start auto mode...
+	// put device into rx mode
+	// set up listener to receive data (emitter), either with some polling 
+	//	mechanism or irq-driven
+	
+	this.setRXTX('rx');
+	this.rxintervalid = setInterval(this.rxpoll.bind(this), 20); // go with 50 checks per second
+	
+	// call this in userland
+	// this.on('rxdata', function(pipe, data) {
+	// 	console.log('received data');
+	// 	console.log({pipe: pipe, data: data});
+	// });
+	
+	// set up fifo to send data
+	// set up events/emitters/whatever to handle fifo
+	//	(sets device into tx mode whenever stuff is being put into fifo until 
+	// 	it's empty, then get back into rx mode)
+
+	this.txfifo = new FIFO();
+	this.txfifo.on('sending', function(){
+		this.setRXTX('tx');
+		// console.log(this.txfifo.hasItems());
+		while(this.txfifo.hasItems()) {
+			var item = this.txfifo.out();
+			this.sendData(item);
+		};
+		this.setRXTX('rx');
+	}.bind(this));
+	
+};
+RF.prototype.sendToFifo = function(data) {
+	console.log("sending to fifo");
+	this.txfifo.in(data);
+};
+
+RF.prototype.rxpoll = function () {
+	var self = this;
+	// check for data in STATUS
+	// -> bit 6 (RX_DR): data ready, write 1
+	// -> bit 3:1 (RX_P_NO): pipe number
+	// read data with CMDS.R_RX_PAYLOAD
+	if(!self.polling) {
+		self.polling = true;
+		this.readRegister(RF.CMDS.NOP, 0, function(buf){parseStatus(buf)});
+		function parseStatus (buf) {
+			if(buf[0] & RF.BITMASKS.RX_DR == 1) {
+				var pipenum = (buf[0] & RF.BITMASKS.RX_P_NO) >> 1;
+				recvData(pipenum);
+			} else {
+				// nothing new, return...
+				self.polling = false;
+			}
+		}
+		function recvData(pipenum) {
+			this.readData(32, function(buf) {
+				this.emit('rxdata', pipe, buf);
+				self.polling = false;
+			});
+		}
+	}
 }
 
 
+
+// send data!!!
+// TODO: make sure PTX flag in CONFIG-Register is set for this to work...
 RF.prototype.sendData = function(data, callback) {
 	var self = this;
 	// assuming data is already a buffer here, but just to be sure...
@@ -53,13 +141,24 @@ RF.prototype.sendData = function(data, callback) {
 	this.ce(0, function(){
 		// write data to device
 		self.spi.write(txbuf, function(buf){
-			console.log("written data...");
-			if(callback) {
-				callback(buf);
-			};
+			// console.log("written data...");
+			if(callback) { callback(buf); };
 		});
 		// pulling ce hi (really short...) to activate tx mode
 		self.ce(1, function() { self.ce(0); });
+	});
+}
+
+// way simpler then senddata: Really just uses read command to clock out 32 bytes
+//	of data from device, regardless if there is some or not...
+RF.prototype.readData = function(numbytes, callback) {
+	var cmd = new Buffer([RF.CMDS.R_RX_PAYLOAD]);
+	var data = new Buffer(numbytes);
+	data.fill(0x00);
+	var txbuf = Buffer.concat([cmd, data]);
+	var rxbuf = txbuf;
+	this.spi.transfer(txbuf, rxbuf, function(dev, buf) {
+		if(callback) { callback(buf) };
 	});
 }
 
@@ -67,16 +166,19 @@ RF.prototype.sendData = function(data, callback) {
 // read a register at a address (up to 5 bytes...) and return numDataBytes to Callback...
 RF.prototype.readRegister = function(addr, numDataBytes, callback) {
 	// ANDing addr with read command
-	var cmd = new Buffer(this.R_REGISTER & addr);
+	var cmd = new Buffer([this.R_REGISTER + addr]);
 	// padding with null bytes to receive data bytes
 	var padbuf = new Buffer(numDataBytes);
+	padbuf.fill(0x00);
 	var txbuf = Buffer.concat([cmd, padbuf]);
-	// copy rxbuf because it needs to be the same length (why not use spi.write here, would be the same...)
+	// copy rxbuf because it needs to be the same length (why not use spi.write 
+	// 	here, would be the same...)
 	var rxbuf = txbuf;
 	// invoke spi, hand over to callback
 	this.spi.transfer(txbuf, rxbuf, function(dev, buf) {
-		console.log("wrote data, read register content is " + buf);
-		callback(buf);
+	// console.log("wrote data, read register content is ");
+		// console.log(buf);
+		if(callback) { callback(buf) };
 	});
 }
 
@@ -92,7 +194,7 @@ RF.prototype.setRegister = function(addr, data, callback) {
 	var txbuf = Buffer.concat([cmdbyte, data]);
 	
 	this.spi.write(txbuf, function (dev, buf) {
-		console.log("successfully written data, cmd was: " + txbuf);
+		// console.log("successfully written data, cmd was: " + txbuf);
 		if(callback) { callback(buf) };
 	})
 }
@@ -110,6 +212,27 @@ RF.prototype.receive = function (pipe, callback) {
 	callback(buffer);
 }
 
+// set rx/tx mode; 'rx' or 'tx' (or 1 or 0)
+// RF.RADDR.CONFIG + bit 0
+RF.prototype.setRXTX = function (mode) {
+	var self = this;
+	// read register
+	this.readRegister(RF.RADDR.CONFIG, 1, function(buf) {
+		// buf[0] contains status byte I guess...
+		var currentConf = buf[1];
+		if (mode == 'rx') { mode = 1 };
+		if (mode == 'tx') { mode = 0 };
+		var newConf = self.setBit(currentConf, RF.BITMASKS.PRIM_RX, mode);
+		this.ce(0, function() {	
+			self.setRegister(RF.RADDR.CONFIG, newConf, function(){
+				// console.log("Set register" + RF.RADDR.CONFIG + "to data" + newConf);
+			});
+			// ce=>1 in rx mode
+			if (mode == 1) { this.ce(1) };
+		}.bind(this));
+	}.bind(this));
+}
+
 // set crc mode; (bool)active and (int)mode (0 -> 1 byte, 1 -> 2 byte)
 // RF.RADDR.CONFIG + bit 3 and 2
 RF.prototype.setCRC = function (active, mode) {
@@ -121,7 +244,7 @@ RF.prototype.setCRC = function (active, mode) {
 		var newConf = self.setBit(currentConf, RF.BITMASKS.EN_CRC, active);
 		newConf = self.setBit(newConf, RF.BITMASKS.CRCO, mode);
 		self.setRegister(RF.RADDR.CONFIG, newConf, function(){
-			console.log("Set register" + RF.RADDR.CONFIG + "to data" + newConf);
+			// console.log("Set register" + RF.RADDR.CONFIG + "to data" + newConf);
 		});
 	});
 }
@@ -257,7 +380,7 @@ RF.prototype.setTxAddress = function (addr) {
 
 
 
-
+// some register addresses and maps for convenience... :-)
 RF.CMDS = {
 	R_REGISTER: 0x00, // 000A AAAA -> AAAAA is the register address
 	W_REGISTER: 0x20, // 001A AAAA -> s.o.
@@ -308,6 +431,9 @@ RF.BITMASKS = {
 	CRCO: 		parseInt("00000100", 2),
 	RF_DR_LOW: 	parseInt("00010000", 2),
 	RF_DR_HIGH:	parseInt("00000100", 2),
+	PRIM_RX: 	parseInt("00000001", 2),
+	RX_DR: 		parseInt("01000000", 2),
+	RX_P_NO: 	parseInt("00001110", 2)
 };
 
 
@@ -381,16 +507,28 @@ lo -----
 //
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 */
+
+// helper class: provide some simple fifo that calls some simple events...?
+util.inherits(FIFO, events.EventEmitter); // yay, events!
+
+function FIFO() {
+	this.items = new Array();
+}
+
+FIFO.prototype.in = function(item) {
+	this.items.push(item);
+	if(this.items.length == 1) {
+		this.emit('sending')
+	}
+}
+
+FIFO.prototype.out = function() {
+	var item = this.items.shift();
+	return item;
+}
+
+FIFO.prototype.hasItems = function() {
+	return this.items.length > 0;
+}
+
