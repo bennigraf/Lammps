@@ -13,6 +13,21 @@ BTW: There's no tolerance for faulty data yet, so use wisely!
 
 **Consult the datasheet of the NRF24l01 for details on all functionality and how to configure it properly!**
 
+Installation
+============
+
+```
+// (assuming you're on a raspberry pi here...)
+// SPI: Make sure /dev/spidev0.0 is there, otherwise see http://www.100randomtasks.com/simple-spi-on-raspberry-pi
+// install this node spi lib: https://github.com/RussTheAerialist/node-spi
+npm install spi
+
+// install this GPIO-lib: install https://github.com/JamesBarwell/rpi-gpio.js
+npm install rpi-gpio
+
+// clone this repo and you're good to go!
+```
+
 Basic Usage
 ===========
 
