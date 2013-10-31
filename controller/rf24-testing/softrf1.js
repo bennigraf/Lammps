@@ -23,3 +23,9 @@ setTimeout(function(){
 		console.log(buf);
 	});
 }, 1000);
+
+
+setTimeout(function(){
+	rf.sendToFifo(new Buffer([0x2d, 0x00, 0xff, 0x00]));
+	rf.sendToFifo(new Buffer([0x2d, 0x0f, 0x00, 0xf0]));
+}, 2030);
