@@ -2,7 +2,7 @@ var RF = require('../soft-rf24/soft-rf24.js');
 
 var rf = new RF("/dev/spidev0.0");
 
-setTimeout(function(){
+rf.on('ready', function() {
 	console.log("set addr width");
 	rf.setAddrWidth(5);
 	console.log("set addr");
@@ -19,14 +19,14 @@ setTimeout(function(){
 	// ...more setup stuff if needed...
 
 
-	rf.readRegister(0x00, 1, function(buf){
-		console.log(buf);
-	});
 	rf.readRegister(0x10, 5, function(buf) { console.log(buf) });
 
-	rf.sendData(new Buffer([0x2d, 0xa0, 0x00, 0xff, 0xff]));
-}, 1000);
-
+	rf.startAutoMode();
+	
+	rf.on('data', function(data) {
+		console.log('data received');
+	});
+});
 
 setTimeout(function(){
 //	rf.sendToFifo(new Buffer([0x2d, 0x00, 0xff, 0x00]));
