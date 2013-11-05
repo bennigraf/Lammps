@@ -44,6 +44,7 @@ function RF(spiPath, gpiopin) {
 	// setup gpio stuff (for stupid ce pulling)
 	gpio.setup(gpiopin, gpio.DIR_OUT, function(){ 
 		console.log("gpio-output enabled!");
+		this.emit('ready');
 	});
 	
 	// helper variables...
@@ -121,7 +122,7 @@ RF.prototype.rxpoll = function () {
 		}
 		function recvData(pipenum) {
 			this.readData(32, function(buf) {
-				this.emit('rxdata', pipe, buf);
+				this.emit('data', pipe, buf);
 				self.polling = false;
 			});
 		}
