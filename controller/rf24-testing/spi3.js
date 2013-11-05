@@ -25,7 +25,7 @@ var gpio = require('rpi-gpio');
 // ce2(0);
 
 
-// ce: pin 25
+// ce: pin 18
 gpio.setup(18, gpio.DIR_OUT, function(){ 
 	console.log("gpio-output enabled!");
 	sendstuff();
