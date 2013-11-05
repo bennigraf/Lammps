@@ -1,4 +1,16 @@
-require('../soft-rf24');
+var RF = require('../soft-rf24/soft-rf24.js');
+
+function MM () {
+	// setup module manager
+	
+	var rf = new RF("/dev/spidev0.0");
+
+}
+
+MM.boot () {
+	
+}
+
 
 /*
 Useage:
