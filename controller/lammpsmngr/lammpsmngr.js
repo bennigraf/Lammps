@@ -9,7 +9,7 @@ module.exports = LM;
 function LM() {
 	
 	var MM = require('../modulemngr/modulemngr.js');
-	var mm = new MM();
+	this.mm = new MM();
 	
 	// OSC init...
 	// OSC paths init...
@@ -21,20 +21,22 @@ function LM() {
 	wa(this);
 }
 
-LM.prototype.api = {
-	listmodules: function() {
-		return modules;
-	},
-	module: function(id) {
-		var module = new Array;
-		if(id === undefined) { return false }
-		for (var i=0; i < modules.length; i++) {
-			if(modules[i]["id"] == id) {
-				module = modules[i];
-			}
-		};
-		return module;
-	}
+LM.prototype.listmodules = function() {
+	return modules;
+}
+LM.prototype.getmodule = function(id) {
+	var module = new Array;
+	if(id === undefined) { return false }
+	for (var i=0; i < modules.length; i++) {
+		if(modules[i]["id"] == id) {
+			module = modules[i];
+		}
+	};
+	return module;
+}
+LM.prototype.setdata = function(id, fn, data) {
+	// console.log(id, this.mm.modules);
+	this.mm.modules[id].setData(fn, data);
 }
 
 

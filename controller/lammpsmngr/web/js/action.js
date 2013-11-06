@@ -103,11 +103,17 @@ $().ready(function(){
 						col.haml(["%p", "Red", [".slider", {class: "red"}]]);
 						col.haml(["%p", "Green", [".slider", {class: "green"}]]);
 						col.haml(["%p", "Blue", [".slider", {class: "blue"}]]);
-						col.find(".slider").slider();
-						col.find(".slider.red").on("slide", function(ev, ui) {
-							// console.log(ui.value);
+						col.find(".slider.red, .slider.green, .slider.blue").slider().on('slide', function() {
+							var rgb = get_rgb_values();
+							console.log(rgb);
+							$.get("/modules/"+id+"/setdata", {function: "color", r: rgb[0], g: rgb[1], b: rgb[2]});
 						});
-						
+						function get_rgb_values() {
+							var r = col.find(".slider.red").slider("value") / 100;
+							var g = col.find(".slider.green").slider("value") / 100;
+							var b = col.find(".slider.blue").slider("value") / 100;
+							return [r, g, b];
+						}
 						break;
 					case "dim":
 					

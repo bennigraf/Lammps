@@ -24,18 +24,32 @@ module.exports = function(lm) {
 	});
 
 	app.get('/test', function(req, res) {
-		lm.api.test();
+		lm.test();
 	});
 	
 	app.get('/listmodules', function(req, res) {
-		var modules = lm.api.listmodules();
+		var modules = lm.listmodules();
 		res.send(modules);
 	});
 	
 	app.get('/modules/:id', function(req, res) {
 		var id = req.params["id"];
-		var module = lm.api.module(id);
+		var module = lm.getmodule(id);
 		res.send(module);
+	});
+	
+	app.get('/modules/:id/setdata', function(req, res) {
+		var id = req.params["id"];
+		var func = req.query["function"];
+		var r = req.query["r"];
+		var g = req.query["g"];
+		var b = req.query["b"];
+		switch(func) {
+			case "color":
+				lm.setdata(id, "color", [r, g, b]);
+				break;
+		}
+		res.send();
 	});
 	
 
