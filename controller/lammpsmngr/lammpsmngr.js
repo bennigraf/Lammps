@@ -23,16 +23,27 @@ function LM() {
 
 LM.prototype.api = {
 	listmodules: function() {
-		var modules = [
-			{ title: 'module1', id: 'xhhe', 'location': [0, 0], 'functions': ["dim", "color"] },
-			{ title: 'module2', id: 'ddwg', 'location': [0, 1], 'functions': ["dim", "color"] },
-			{ title: 'module3', id: 'askw', 'location': [1, 0], 'functions': ["dim"] },
-			{ title: 'module4', id: 'icos', 'location': [1, 0], 'functions': ["sound"] },
-		]
 		return modules;
+	},
+	module: function(id) {
+		var module = new Array;
+		if(id === undefined) { return false }
+		for (var i=0; i < modules.length; i++) {
+			if(modules[i]["id"] == id) {
+				module = modules[i];
+			}
+		};
+		return module;
 	}
 }
 
+
+var modules = [
+	{ title: 'module1', id: 'xhhe', 'location': [0, 0], 'functions': ["dim", "color"] },
+	{ title: 'module2', id: 'ddwg', 'location': [0, 1], 'functions': ["dim", "color"] },
+	{ title: 'module3', id: 'askw', 'location': [1, 0], 'functions': ["dim"] },
+	{ title: 'module4', id: 'icos', 'location': [1, 0], 'functions': ["sound"] },
+];
 /*
 
 

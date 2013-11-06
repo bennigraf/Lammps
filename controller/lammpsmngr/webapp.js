@@ -31,5 +31,12 @@ module.exports = function(lm) {
 		var modules = lm.api.listmodules();
 		res.send(modules);
 	});
+	
+	app.get('/modules/:id', function(req, res) {
+		var id = req.params["id"];
+		var module = lm.api.module(id);
+		res.send(module);
+	});
+	
 
 }
