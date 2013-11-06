@@ -1,13 +1,18 @@
+
 var RF = require('../soft-rf24/soft-rf24.js');
+
+// export stuff...
+module.exports = MM;
+
 
 function MM () {
 	// setup module manager
 	
 	var rf = new RF("/dev/spidev0.0");
-
+	rf.startAutoMode();
 }
 
-MM.boot () {
+MM.prototype.boot = function () {
 	
 }
 
