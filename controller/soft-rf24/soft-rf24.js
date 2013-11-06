@@ -44,7 +44,7 @@ function RF(spiPath, gpiopin) {
 	// setup gpio stuff (for stupid ce pulling)
 	gpio.setup(gpiopin, gpio.DIR_OUT, function(){ 
 		console.log("gpio-output enabled!");
-		// this.emit('ready');
+		this.emit('ready');
 	});
 	
 	// helper variables...
