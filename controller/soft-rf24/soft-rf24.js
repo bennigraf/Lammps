@@ -45,7 +45,7 @@ function RF(spiPath, gpiopin) {
 	gpio.setup(gpiopin, gpio.DIR_OUT, function(){ 
 		console.log("gpio-output enabled!");
 		this.emit('ready');
-	});
+	}.bind(this));
 	
 	// helper variables...
 	this.polling = false; // true if polling of data is occuring, to not overflow pipe...
