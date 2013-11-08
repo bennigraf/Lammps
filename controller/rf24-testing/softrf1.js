@@ -6,22 +6,25 @@ rf.on('ready', function() {
 	console.log("set addr width");
 	rf.setAddrWidth(5);
 	console.log("set addr");
-	rf.setTxAddress(4564468532);
+	rf.setTxAddress(13154403124);
 	//console.log("set aa");
-	//rf.setAutoAck(0, 1);
+	rf.setAutoAck(0, 1);
 	//console.log("set channel");
 	//rf.setChannel(0);
-	//rf.setRate(2); // 2mbit
-	//rf.setPower(3); // 0dbm
+	rf.setRate(2); // 2mbit
+	rf.setPower(3); // 0dbm
 	rf.setCRC(1, 0); // active, 2byte
 
 	//rf.sendData(new Buffer([0x2d, 0x00, 0x00, 0xff]));
 	// ...more setup stuff if needed...
 
 
-	rf.readRegister(0x10, 5, function(buf) { console.log(buf) });
+	rf.readRegister(0x07, 1, function(buf) { 
+		console.log("reading");
+		console.log(buf) 
+	});
 
-	rf.startAutoMode();
+	//rf.startAutoMode();
 	
 	rf.on('data', function(data) {
 		console.log('data received');
