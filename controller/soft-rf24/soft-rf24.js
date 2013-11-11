@@ -50,6 +50,15 @@ function RF(spiPath, gpiopin) {
 	// helper variables...
 	this.polling = false; // true if polling of data is occuring, to not overflow pipe...
 	this.txfifo; // holds output fifo when in automode...
+	this.debug = false;
+}
+RF.prototype.log = function(msg, buf) {
+	if(this.debug) {
+		console.log("==="+msg);
+		if(buf!=='undefined') {
+			console.log(buf);
+		}
+	}
 }
 
 /*
@@ -88,17 +97,21 @@ RF.prototype.startAutoMode = function() {
 	this.txfifo = new FIFO();
 	this.txfifo.on('sending', function(){
 		this.setRXTX('tx');
-		// console.log(this.txfifo.hasItems());
-		while(this.txfifo.hasItems()) {
+		var sendFromFifo = function() {
 			var item = this.txfifo.out();
-			this.sendData(item);
-		};
-		this.setRXTX('rx');
+			this.sendData(item, function() {
+				if(this.txfifo.hasItems()) {
+					sendFromFifo();
+				} else {
+					this.setRXTX('rx');
+				}
+			}.bind(this));
+		}.bind(this)();
 	}.bind(this));
 	
 };
 RF.prototype.sendToFifo = function(data) {
-	console.log("sending to fifo");
+	// console.log("sending to fifo");
 	this.txfifo.in(data);
 };
 
@@ -110,7 +123,7 @@ RF.prototype.rxpoll = function () {
 	// read data with CMDS.R_RX_PAYLOAD
 	if(!self.polling) {
 		self.polling = true;
-		this.readRegister(RF.CMDS.NOP, 0, function(buf){parseStatus(buf)});
+		this.readRegister(RF.CMDS.NOP, 1, function(buf){parseStatus(buf)});
 		function parseStatus (buf) {
 			if(buf[0] & RF.BITMASKS.RX_DR == 1) {
 				var pipenum = (buf[0] & RF.BITMASKS.RX_P_NO) >> 1;
@@ -139,15 +152,20 @@ RF.prototype.sendData = function(data, callback) {
 	if(data.length == undefined) { data = new Buffer([data]); }
 	var cmd = new Buffer([RF.CMDS.W_TX_PAYLOAD]);
 	var txbuf = Buffer.concat([cmd, data]);
+	var rxbuf = txbuf;
 	// pulling ce low to write data to device
 	this.ce(0, function(){
 		// write data to device
-		self.spi.write(txbuf, function(buf){
+		self.log("sendData", txbuf);
+		self.spi.transfer(txbuf, rxbuf, function(dev, buf){
 			// console.log("written data...");
-			if(callback) { callback(buf); };
-		});
-		// pulling ce hi (really short...) to activate tx mode
-		self.ce(1, function() { self.ce(0); });
+			self.log("got back: ", buf);
+			// pulling ce hi (really short...) to activate tx mode
+			self.ce(1, function() { 
+				self.ce(0); 
+				if(callback) { callback(buf); };
+			});
+		}.bind(this));
 	});
 }
 
@@ -159,16 +177,18 @@ RF.prototype.readData = function(numbytes, callback) {
 	data.fill(0x00);
 	var txbuf = Buffer.concat([cmd, data]);
 	var rxbuf = txbuf;
+	this.log("readData", txbuf);
 	this.spi.transfer(txbuf, rxbuf, function(dev, buf) {
+		this.log("got back: ", buf);
 		if(callback) { callback(buf) };
-	});
+	}.bind(this));
 }
 
 
 // read a register at a address (up to 5 bytes...) and return numDataBytes to Callback...
 RF.prototype.readRegister = function(addr, numDataBytes, callback) {
 	// ANDing addr with read command
-	var cmd = new Buffer([this.R_REGISTER + addr]);
+	var cmd = new Buffer([RF.CMDS.R_REGISTER + addr]);
 	// padding with null bytes to receive data bytes
 	var padbuf = new Buffer(numDataBytes);
 	padbuf.fill(0x00);
@@ -176,12 +196,14 @@ RF.prototype.readRegister = function(addr, numDataBytes, callback) {
 	// copy rxbuf because it needs to be the same length (why not use spi.write 
 	// 	here, would be the same...)
 	var rxbuf = txbuf;
+	this.log("read register: ", txbuf);
 	// invoke spi, hand over to callback
 	this.spi.transfer(txbuf, rxbuf, function(dev, buf) {
+		this.log("got back: ", buf);
 	// console.log("wrote data, read register content is ");
 		// console.log(buf);
 		if(callback) { callback(buf) };
-	});
+	}.bind(this));
 }
 
 // set a register at a address (with up to 5 bytes...)
@@ -195,10 +217,12 @@ RF.prototype.setRegister = function(addr, data, callback) {
 	
 	var txbuf = Buffer.concat([cmdbyte, data]);
 	
+	this.log("set register: ", txbuf);
 	this.spi.write(txbuf, function (dev, buf) {
+		this.log("got back: ", buf);
 		// console.log("successfully written data, cmd was: " + txbuf);
 		if(callback) { callback(buf) };
-	})
+	}.bind(this))
 }
 
 
@@ -251,13 +275,29 @@ RF.prototype.setCRC = function (active, mode) {
 	});
 }
 
+// set pwr mode; (bool)mode (0 -> down, 1 -> up)
+// RF.RADDR.CONFIG + bit 1
+RF.prototype.setPWR = function (mode) {
+	var self = this;
+	// read register
+	this.readRegister(RF.RADDR.CONFIG, 1, function(buf) {
+		// buf[0] contains status byte I guess...
+		var currentConf = buf[1];
+		var newConf = self.setBit(currentConf, RF.BITMASKS.PWR_UP, mode);
+		self.setRegister(RF.RADDR.CONFIG, newConf, function(){
+			
+		});
+	});
+}
+
+
 // global address width (3 to 5 bytes)
 // RF.RADDR.SETUP_AW
 RF.prototype.setAddrWidth = function (width) {
 	// just write width here because nothing else is stored in that register
 	width = width - 2; // assuming width is (int)3..5, this translates to (int)1..3 in the register
 	this.setRegister(RF.RADDR.SETUP_AW, width, function() {
-		console.log("New addr width set to mode: " + width);
+		// console.log("New addr width set to mode: " + width);
 	});
 }
 
@@ -271,7 +311,7 @@ RF.prototype.setRxAddress = function (pipe, addr) {
 		var mask = 1 << pipe; // pipe 0 => lsb, pipe 5 => 00100000...
 		var newConf = this.setBit(currentConf, mask, 1);
 		this.setRegister(RF.RADDR.EN_RXADDR, newConf, function(){
-			console.log("Activated pipe" + pipe + "(mask "+mask.toString(2)+")");
+			// console.log("Activated pipe" + pipe + "(mask "+mask.toString(2)+")");
 			// set address (RX_ADDR_Pn)
 			// address must be of correct length, so .setAddrWidth first
 			// for pipe 2 to 5 one can only set the lsb, the rest is the same as in pipe 1
@@ -279,17 +319,17 @@ RF.prototype.setRxAddress = function (pipe, addr) {
 			var addrBuf = this.addrToBuf(addr);
 			if(pipe < 2) {
 				this.setRegister(RF.RADDR.RX_ADDR_P0 + pipe, addrBuf, function(){
-					console.log("lalala set rx address...");
+					// console.log("lalala set rx address...");
 				})
 			} else {
 				// set only lsb
 				var buf = new Buffer([addrBuf[0]]);
 				this.setRegister(RF.RADDR.RX_ADDR_P0 + pipe, addrBuf, function() {
-					console.log("lalala set rx address...");
+					// console.log("lalala set rx address...");
 				});
 			}
-		});
-	});
+		}.bind(this));
+	}.bind(this));
 	
 }
 
@@ -297,7 +337,7 @@ RF.prototype.setRxAddress = function (pipe, addr) {
 // RF.RADDR.RF_CH
 RF.prototype.setChannel = function (channel) {
 	this.setRegister(RF.RADDR.RF_CH, channel, function() {
-		console.log("Set channel to" + channel);
+		// console.log("Set channel to" + channel);
 	})
 }
 
@@ -326,7 +366,7 @@ RF.prototype.setRate = function (rate) {
 			newConf = self.setBit(currentConf, RF.BITMASKS.RF_DR_HIGH, 1);
 		}
 		self.setRegister(RF.RADDR.RF_SETUP, newConf, function(){
-			console.log("Set rf-rate to " + rate);
+			// console.log("Set rf-rate to " + rate);
 		});
 	});
 }
@@ -351,7 +391,7 @@ RF.prototype.setPower = function(power) {
 		newConf = self.setBit(currentConf, mask2, power % 2);
 		// write register
 		self.setRegister(RF.RADDR.RF_SETUP, newConf, function(){
-			console.log("Set rf-power to " + power);
+			// console.log("Set rf-power to " + power);
 		});
 	});
 }
@@ -365,7 +405,7 @@ RF.prototype.setAutoAck = function(pipe, active) {
 		var mask = 1 << pipe; // pipe 0 => lsb, pipe 5 => 00100000...
 		var newConf = self.setBit(currentConf, mask, active);
 		self.setRegister(RF.RADDR.EN_AA, newConf, function(){
-			console.log("Set Autoack on pipe" + pipe + " to "+active+"(mask:"+mask.toString(2)+")");
+			// console.log("Set Autoack on pipe" + pipe + " to "+active+"(mask:"+mask.toString(2)+")");
 		});
 	});
 }
@@ -435,7 +475,8 @@ RF.BITMASKS = {
 	RF_DR_HIGH:	parseInt("00000100", 2),
 	PRIM_RX: 	parseInt("00000001", 2),
 	RX_DR: 		parseInt("01000000", 2),
-	RX_P_NO: 	parseInt("00001110", 2)
+	RX_P_NO: 	parseInt("00001110", 2),
+	PWR_UP: 	parseInt("00000010", 2)
 };
 
 
