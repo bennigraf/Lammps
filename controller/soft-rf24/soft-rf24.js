@@ -118,27 +118,37 @@ RF.prototype.sendToFifo = function(data) {
 RF.prototype.rxpoll = function () {
 	var self = this;
 	// check for data in STATUS
-	// -> bit 6 (RX_DR): data ready, write 1
-	// -> bit 3:1 (RX_P_NO): pipe number
+	// -> bit 3:1 (RX_P_NO): pipe number (111 for no new data...)
 	// read data with CMDS.R_RX_PAYLOAD
 	if(!self.polling) {
 		self.polling = true;
-		this.readRegister(RF.CMDS.NOP, 1, function(buf){parseStatus(buf)});
-		function parseStatus (buf) {
-			if(buf[0] & RF.BITMASKS.RX_DR == 1) {
+		var parseStatus = function (buf) {
+			if((buf[0] & RF.BITMASKS.RX_P_NO) < 0x0e) {
 				var pipenum = (buf[0] & RF.BITMASKS.RX_P_NO) >> 1;
 				recvData(pipenum);
 			} else {
-				// nothing new, return...
+				// nothing to do...
 				self.polling = false;
 			}
-		}
-		function recvData(pipenum) {
-			this.readData(32, function(buf) {
-				this.emit('data', pipe, buf);
-				self.polling = false;
-			});
-		}
+		}.bind(this);
+		var recvData = function (pipenum) {
+			// get payload width
+			// R_RX_PL_WID
+			var txbuf = new Buffer([RF.CMDS.R_RX_PL_WID, 0x00]);
+			var rxbuf = txbuf;
+			this.spi.transfer(txbuf, rxbuf, function(dev, buf) {
+				var pw = buf[1];
+				// read payload
+				this.readData(pw, function(buf) {
+					this.emit('data', pipenum, buf);
+					self.polling = false;
+				}.bind(this));
+			}.bind(this));
+		}.bind(this);
+		
+		this.readRegister(RF.CMDS.NOP, 1, function(buf){
+			parseStatus(buf);
+		}.bind(this));
 	}
 }
 
@@ -250,11 +260,11 @@ RF.prototype.setRXTX = function (mode) {
 		if (mode == 'tx') { mode = 0 };
 		var newConf = self.setBit(currentConf, RF.BITMASKS.PRIM_RX, mode);
 		this.ce(0, function() {	
-			self.setRegister(RF.RADDR.CONFIG, newConf, function(){
+			this.setRegister(RF.RADDR.CONFIG, newConf, function(){
 				// console.log("Set register" + RF.RADDR.CONFIG + "to data" + newConf);
-			});
-			// ce=>1 in rx mode
-			if (mode == 1) { this.ce(1) };
+				// ce=>1 in rx mode
+				if (mode == 1) { this.ce(1) };
+			}.bind(this));
 		}.bind(this));
 	}.bind(this));
 }
