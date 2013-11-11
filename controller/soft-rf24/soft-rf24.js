@@ -365,15 +365,15 @@ RF.prototype.setRate = function (rate) {
 		var newConf;
 		if(rate == 0) {
 			newConf = self.setBit(currentConf, RF.BITMASKS.RF_DR_LOW, 1);
-			newConf = self.setBit(currentConf, RF.BITMASKS.RF_DR_HIGH, 0);
+			newConf = self.setBit(newConf, RF.BITMASKS.RF_DR_HIGH, 0);
 		}
 		if (rate == 1) {
 			newConf = self.setBit(currentConf, RF.BITMASKS.RF_DR_LOW, 0);
-			newConf = self.setBit(currentConf, RF.BITMASKS.RF_DR_HIGH, 0);
+			newConf = self.setBit(newConf, RF.BITMASKS.RF_DR_HIGH, 0);
 		}
 		if (rate == 2) {
 			newConf = self.setBit(currentConf, RF.BITMASKS.RF_DR_LOW, 0);
-			newConf = self.setBit(currentConf, RF.BITMASKS.RF_DR_HIGH, 1);
+			newConf = self.setBit(newConf	, RF.BITMASKS.RF_DR_HIGH, 1);
 		}
 		self.setRegister(RF.RADDR.RF_SETUP, newConf, function(){
 			// console.log("Set rf-rate to " + rate);
@@ -481,8 +481,8 @@ RF.RADDR = {
 RF.BITMASKS = {
 	EN_CRC: 	parseInt("00001000", 2),
 	CRCO: 		parseInt("00000100", 2),
-	RF_DR_LOW: 	parseInt("00010000", 2),
-	RF_DR_HIGH:	parseInt("00000100", 2),
+	RF_DR_LOW: 	parseInt("00100000", 2),
+	RF_DR_HIGH:	parseInt("00001000", 2),
 	PRIM_RX: 	parseInt("00000001", 2),
 	RX_DR: 		parseInt("01000000", 2),
 	RX_P_NO: 	parseInt("00001110", 2),
