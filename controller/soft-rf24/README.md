@@ -1,4 +1,4 @@
-**WORK IN PROGRESS! NOT FUNCTIONAL YET!**
+**WORK IN PROGRESS! ONLY PARTLY FUNCTIONAL!**
 
 SOFT-RF24
 =========
@@ -47,15 +47,28 @@ rf.receive(0, function(buf){
 })
 ```
 
+Also there's automode which polls for received data and uses a FIFO to send packets:
+
+```
+rf.startAutoMode();
+
+rf.on('data', function(pipe, data) {
+	console.log(data);
+});
+
+rf.sendToFifo(new Buffer([0x01, 0x02, 0x03, 0x04]));
+```
+
 API Reference
 =============
 
 Initialisation:
 ---------------
 
-* **new RF(spidev)**  
+* **new RF(spidev, gpiopin)**  
 Creates a new instance. 
-**spidev**: Path to spi device, i.e. /dev/spidev0.0 on a Raspberry Pi.
+**spidev**: Path to spi device, i.e. /dev/spidev0.0 on a Raspberry Pi.  
+**gpiopin**: GPIO-Pin to use for CE, defaults to 18. Counted as physical ports since this uses WiringPI.
 
 * **rf.transmit(buffer)**  
 Transmits a buffer of up to 32 bytes. Bytes after that are dropped.  
@@ -103,6 +116,9 @@ Enable or disable Auto Acknowledgement on a certain pipe.
 Set the transmission address of the device. **Set address width first!**
 **addr**: The address (integer), up to 16777215 (for 3 bytes) or 1099511627775 (for 5 bytes).
 
+* **RF.setRXTX(mode)**  
+Put device in RX or TX mode.  
+**mode**: 'rx' or 'tx'
 
 Example:
 ```
