@@ -47,7 +47,7 @@ rf.on('ready', function() {
 	// rf.setRxAddress(0, 17449370420);
 	rf.setTxAddress(17449370420); // 04 10 10 43 34
 	// rf.setTxAddress(224463425540); // 34 43 10 10 04
-	rf.setRxAddress(0, 224463425540);
+	rf.setRxAddress(0, 17449370420);
 	
 	// power it up!!
 	rf.setPWR(1);

@@ -43,7 +43,7 @@ LM.prototype.setdata = function(id, fn, data) {
 var modules = [
 	{ title: 'module1', id: 'xhhe', 'location': [0, 0], 'functions': ["dim", "color"] },
 	{ title: 'module2', id: 'ddwg', 'location': [0, 1], 'functions': ["dim", "color"] },
-	{ title: 'module3', id: 'askw', 'location': [1, 0], 'functions': ["dim"] },
+	{ title: 'module3', id: 'askw', 'location': [1, 0], 'functions': ["dim", "color"] },
 	{ title: 'module4', id: 'icos', 'location': [1, 0], 'functions': ["sound"] },
 ];
 /*

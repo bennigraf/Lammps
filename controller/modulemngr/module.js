@@ -35,6 +35,15 @@ Module.prototype.sendColor = function(data) {
 	var r = toInt(data[0]);
 	var g = toInt(data[1]); 
 	var b = toInt(data[2]);
-	var dataBuf = new Buffer([fsize, fn, r, g, b]);
+	// hack: must have 15 clr bytes/17 bytes in total
+	var colrBuf = new Buffer(15);
+	colrBuf.fill(0x00);
+	colrBuf[0] = r;
+	colrBuf[1] = g;
+	colrBuf[2] = b;
+	// for (var i = 0; i < colrBuf.length; i++) {
+	// 	colrBuf[i] = toInt(data[i%3]);
+	// }
+	var dataBuf = Buffer.concat([new Buffer([fsize, fn]), colrBuf]);
 	this.mngr.sendData(this.address, dataBuf);
 }
