@@ -44,7 +44,7 @@ function setNrfReg(addr, val) {
 };
 
 
-var LOUD = false;
+var LOUD = true;
 
 
 var spi = new SPI.Spi('/dev/spidev0.0', {
@@ -99,7 +99,7 @@ function sendstuff() {
 			sendbuf("set rf channel", [ 0x20 + 0x05, 0x02 ]);
 			
 			// RX_PW_P0 (rx payload...)
-			sendbuf([ 0x20 + 0x11, 0x20 ]); // 16 byte pw
+			sendbuf([ 0x20 + 0x11, 0x20 ]); // 32 byte pw
 			
 			// RF_SETUP:
 			// setup: 1mbit + 0dbm
