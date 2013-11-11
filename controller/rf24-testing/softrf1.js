@@ -60,9 +60,11 @@ rf.on('ready', function() {
 // 	
 	// rf.setRXTX(0);
 // 	
-// 	rf.on('data', function(data) {
-// 		console.log('data received');
-// 	});
+	rf.on('data', function(pipe, data) {
+		console.log('======================================data received');
+		console.log("pipe: " +pipe);
+		console.log(data);
+	});
 });
 
 setTimeout(function(){
@@ -72,10 +74,7 @@ setTimeout(function(){
 		var buf = new Buffer(12);
 		buf.fill(0x30);
 		buf[1 + i%7] = 0xf0;
-		rf.sendToFifo(buf);
-		// rf.setRXTX(0);
-		// rf.sendData(buf);
-		// rf.setRXTX(1);
-		// rf.ce(1, function() {rf.ce(0)});
+		// rf.sendToFifo(buf);
+		
 	}, 10);
 }, 1030);
