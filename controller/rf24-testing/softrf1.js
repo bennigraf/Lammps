@@ -11,18 +11,14 @@ rf.on('ready', function() {
 // 	
 // 	
 // 	// console.log("set aa");
-	rf.setAutoAck(0, 0);
-	rf.setAutoAck(1, 0);
-	rf.setAutoAck(2, 0);
-	rf.setAutoAck(3, 0);
-	rf.setAutoAck(4, 0);
-	rf.setAutoAck(5, 0);
+	rf.setAutoAck(0, 1);
 // 	
 // 	console.log("set channel");
-	rf.setChannel(2);
+	rf.setChannel(0);
 // 	
 // 	console.log("set rate");
-	rf.setRate(2); // 2mbit
+	// rf.setRate(2); // 2mbit
+	rf.setRate(1); // 1mbit
 // 	
 // 	console.log("set power");
 	rf.setPower(3); // 0dbm
@@ -34,11 +30,11 @@ rf.on('ready', function() {
 // 	// ...more setup stuff if needed...
 // 	
 // 	console.log("dpl");
-	rf.setRegister(0x1d, 0x05);
-	rf.setRegister(0x1c, 0x3f);
+	// rf.setRegister(0x1d, 0x05);
+	// rf.setRegister(0x1c, 0x3f);
 	
 	// payload width...
-	// rf.setRegister(0x11, 0x20); // 32byte...
+	rf.setRegister(0x11, 0x11); // 17byte...
 // 	
 // 
 // 	rf.readRegister(0x07, 1, function(buf) { 
@@ -48,8 +44,10 @@ rf.on('ready', function() {
 
 // 	console.log("set addr");
 // 	// rf.setTxAddress(13154403124);
-	rf.setRxAddress(0, 17449370420);
-	rf.setTxAddress(17449370420);
+	// rf.setRxAddress(0, 17449370420);
+	rf.setTxAddress(17449370420); // 04 10 10 43 34
+	// rf.setTxAddress(224463425540); // 34 43 10 10 04
+	rf.setRxAddress(0, 224463425540);
 	
 	// power it up!!
 	rf.setPWR(1);
@@ -71,10 +69,16 @@ setTimeout(function(){
 	var i = 0;
 	setInterval(function() {
 		i = i + 1;
-		var buf = new Buffer(12);
+		var buf = new Buffer(17);
 		buf.fill(0x30);
-		buf[1 + i%7] = 0xf0;
-		// rf.sendToFifo(buf);
+		buf[0] = 0x00;
+		buf[1] = 0x00;
+		buf[2 + i%3] = 0xf0;
+		/* hack: empty tx fifo */
+		rf.spi.write(new Buffer([0xe1, 0x00])); // FLUSH_TX
+		rf.setRegister(0x07, 0x10); // MAX_RT
 		
-	}, 10);
+		rf.sendToFifo(buf);
+		
+	}, 20);
 }, 1030);
