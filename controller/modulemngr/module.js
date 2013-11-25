@@ -14,6 +14,27 @@ function Module (id, mngr) {
 	
 }
 
+Module.prototype.addFunction = function(fn) {
+	// functions (int-table)
+	// 0-9 reserved for configuration purposes
+	// 10: 	raw data
+	// 20: 	dim
+	// 21:	multi-dim
+	// 30:	rgb
+	// 31:	multi-rgb
+	// 40:	sound/synth
+	// TODO: define this elsewhere
+	var funTable = {
+		10: "raw",
+		20: "dim",
+		21: "multi-dim",
+		30: "rgb",
+		31: "multi-rgb",
+		40: "sound"
+	}
+	this.functions.push(funTable[data]);
+}
+
 
 Module.prototype.setData = function(fn, data) {
 	console.log(fn, data);
