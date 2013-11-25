@@ -13,7 +13,7 @@ channel 127 for discovery! changeable via configuration later...
 
 address 0 for registration with central node
 # central node waits on addr 0 for incoming registration requests with guid from certain module
-# recv packet: addr(0), data[(info)0x00, (func)]
+# recv packet: addr(0), data[(info)0x00, (func)0xa0, ...] (see below for functions...)
 # answers with: addr(0), data[(info)0x00, (func)0x01, (nbytes)guid, (5bytes)addr]
 ## (on unsuccessful registration due to packet loss module repeats registration. Registration with double guid drops the first one on the central node.)
 # => module goes into rx mode
@@ -22,15 +22,15 @@ address 0 for registration with central node
 RF-Packet towards central node:
 byte 0: info (see below)
 byte 1: command
-10:		registration-request from module -- (n bytes)guid, (byte)func1, (byte)func2, (byte)funcn...
+	10:	registration-request from module -- (5 bytes)guid, (byte)func1, (byte)func2, (byte)funcn...
 
 
 
 RF-Paket towards module:
 byte 0: info
-7: startpacket of multipacket-transaction
-6: packet is part of multipacket-transaction
-# 4-0: payload-width (do we need this with dpl where the rf knows how much data is coming in?)
+# 7: startpacket of multipacket-transaction
+# 6: packet is part of multipacket-transaction
+# 4-0: packet-count of multipacket-transaction
 
 byte 1: command
 0:		reset/reboot
