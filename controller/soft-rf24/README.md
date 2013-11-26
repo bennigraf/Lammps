@@ -120,6 +120,15 @@ Set the transmission address of the device. **Set address width first!**
 Put device in RX or TX mode.  
 **mode**: 'rx' or 'tx'
 
+* **RF.setDynPdTx(mode)**  
+Set Dynamic Payload Width Mode for transmission  
+**mode**: 0 (disable) or 1 (enable)
+
+* **RF.setDynPdRx(pipe, mode)**  
+Set Dynamic Payload Width Mode for receiving on certain pipe  
+**pipe**: 0-5
+**mode**: 0 (disable) or 1 (enable)
+
 Example:
 ```
 Some example code...

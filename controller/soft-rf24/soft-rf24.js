@@ -429,6 +429,25 @@ RF.prototype.setTxAddress = function (addr) {
 	});
 }
 
+// set dynamic payload width feature
+// maybe needs autoack? not sure... the datasheet sucks about that!
+RF.prototype.setDynPdTx = function(mode) {
+	this.readRegister(RF.RADDR.FEATURE, 1, function(buf) {
+		var currConf = buf[1];
+		var mask = 0x4 + 0x1;
+		var newConf = this.setBit(currConf, mask, mode);
+		self.setRegister(RF.RADDR.FEATURE, newConf);
+	}.bind(this));	
+}
+RF.prototype.setDynPdRx = function(pipe, mode) {
+	this.readRegister(RF.RADDR.DYNPD, 1, function(buf) {
+		var currConf = buf[1];
+		var mask = 0x1 << pipe;
+		var newConf = this.setBit(currConf, mask, mode);
+		self.setRegister(RF.RADDR.DYNPD, newConf);
+	}.bind(this))
+}
+
 
 
 
