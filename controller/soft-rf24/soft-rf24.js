@@ -383,7 +383,7 @@ RF.prototype.setRate = function (rate) {
 
 // set output power (0..3)
 // RF.RADDR.RF_SETUP
-RF.prototype.setPower = function(power) {
+RF.prototype.setTxPower = function(power) {
 	var self = this;
 	// read register
 	this.readRegister(RF.RADDR.RF_SETUP, 1, function(buf) {

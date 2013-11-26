@@ -103,7 +103,7 @@ Set the radio channel of the device. It's calculated as 2.4GHz + n MHz. It's rec
 Set the transmission rate of the device.  
 **rate**: The rate to set. 0 => 250kbit, 1 => 1mbit, 2 => 2mbit.
 
-* **RF.setPower(power)**  
+* **RF.setTxPower(power)**  
 Set the transmission power of the device. Less power means less energy consumption while sending!  
 **power**: The power to set. 0 => -18dbm, 1 => -12dbm, 2 => -6dbm, 3 => 0dbm.
 
