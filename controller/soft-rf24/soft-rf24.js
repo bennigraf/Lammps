@@ -294,9 +294,7 @@ RF.prototype.setPWR = function (mode) {
 		// buf[0] contains status byte I guess...
 		var currentConf = buf[1];
 		var newConf = self.setBit(currentConf, RF.BITMASKS.PWR_UP, mode);
-		self.setRegister(RF.RADDR.CONFIG, newConf, function(){
-			
-		});
+		self.setRegister(RF.RADDR.CONFIG, newConf);
 	});
 }
 

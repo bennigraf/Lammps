@@ -83,6 +83,10 @@ Receive data from rf device. Checks for received data on the device first. Only 
 Module setup:
 -------------
 
+* **RF.setPWR(mode)**  
+Sets power mode/puts device in standby mode  
+**mode**: 0 - power down/standby, 1 - power up
+
 * **RF.setCRC(active, mode)**  
 **active**: 0 or 1, enables or disables CRC  
 **mode**: 0 => 1 byte crc, 1 => 2 byte crc
