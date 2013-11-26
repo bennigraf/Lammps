@@ -434,7 +434,7 @@ RF.prototype.setDynPdTx = function(mode) {
 		var currConf = buf[1];
 		var mask = 0x4 + 0x1;
 		var newConf = this.setBit(currConf, mask, mode);
-		self.setRegister(RF.RADDR.FEATURE, newConf);
+		this.setRegister(RF.RADDR.FEATURE, newConf);
 	}.bind(this));	
 }
 RF.prototype.setDynPdRx = function(pipe, mode) {
@@ -442,7 +442,7 @@ RF.prototype.setDynPdRx = function(pipe, mode) {
 		var currConf = buf[1];
 		var mask = 0x1 << pipe;
 		var newConf = this.setBit(currConf, mask, mode);
-		self.setRegister(RF.RADDR.DYNPD, newConf);
+		this.setRegister(RF.RADDR.DYNPD, newConf);
 	}.bind(this))
 }
 
