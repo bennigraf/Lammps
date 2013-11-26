@@ -10,19 +10,30 @@ function MM () {
 	// setup module manager
 	
 	this.rf = new RF("/dev/spidev0.0");
-	// rf.startAutoMode();
-	this.rf.setAddrWidth(5);
-	this.rf.setTxAddress(17449370420);
-	this.rf.setRxAddress(0, 0);
-	this.rf.setChannel(127);
-	this.rf.setAutoAck(0, 0);
-	this.rf.setRate(2);
-	this.rf.setPower(3);
-	this.rf.setCRC(1, 1);
-	// this.rf.setRXTX(0);
+	this.rf.on('ready', function() {
+		this.rf.setAddrWidth(5); 			// address width - 5 bytes
+		this.rf.setTxAddress(17449370420);	// tx address
+		this.rf.setRxAddress(0, 0);			// rx address on pipe 0 ("broadcast")
+		this.rf.setChannel(125);			// channel
+		this.rf.setAutoAck(0, 0);			// no auto ack on pipe 0
+		this.rf.setAutoAck(1, 0);			// no auto ack on pipe 1
+		this.rf.setRate(2);					// tx rate - 2mbit
+		this.rf.setTxPower(3);				// tx amp - 0dbm
+		this.rf.setCRC(1, 1);				// crc - enabled, 2byte
 	
-	this.rf.startAutoMode();
-	this.rf.on('data', this.rcvData);
+		this.rf.setDynPdTx(1);				// dynpd on transmission enabled
+		this.rf.setDynPdRx(0, 1);			// dynpd on rx pipe 0 enabled
+		this.rf.setDynPdRx(1, 1);			// dynpd on rx pipe 1 enabled
+		// this.rf.setRXTX(0);
+	
+		this.rf.setPayloadWidth(0, 32);		// seems to be necessary because the default pw of 0 disables the pipe
+	
+		this.rf.setPWR(1); 					// powers up
+		this.rf.startAutoMode();	
+	}.bind(this));
+	
+	this.rf.on('data', this.rcvData.bind(this));	
+	
 	
 	this.modules = new Array();
 
@@ -54,7 +65,7 @@ MM.prototype.boot = function () {
 	return false;
 }
 
-MM.prototype.rcvData = function(data) {
+MM.prototype.rcvData = function(pipe, data) {
 	console.log("data received!");
 	console.log(data);
 
@@ -71,7 +82,7 @@ MM.prototype.rcvData = function(data) {
 	}
 	
 	// no multipacket thing, parse data directly
-	if(data[0] & 0x80 === 0) {
+	if((data[0] & 0x80) === 0) {
 		this.parseData(data);
 	}
 }
@@ -79,7 +90,7 @@ MM.prototype.parseData = function(data) {
 	// byte1: command
 	// 0x00: reboot/reset (of module, not cn)
 	// 0xa0: register module -- 5bytes guid, byte func_1, byte func_2, ..., byte func_n
-	if(data[1] & 0xa0) {
+	if(data[1] & 0xa) {
 		this.registerModule(data);
 	}
 	
@@ -98,15 +109,16 @@ MM.prototype.sendData = function(addr, data) {
 }
 
 MM.prototype.registerModule = function(data) {
+	console.log("registering module");
 	// 0xa0: register module -- 5bytes guid, byte func_1, byte func_2, ..., byte func_n
-	var guid = data.slice(2, 6); // should return 5 bytes of data;
+	var guid = data.slice(2, 7); // should return 5 bytes of data;
 	// if module with this guid is already registered, remove it from module list
 	var oldmod = this.findByGUID(guid);
 	if (oldmod !== null) {
 		this.removeModule(oldmod);
 	}
 	
-	var module = new Module(guid);
+	var module = new Module(guid, this);
 	// go through all function bytes, set all functions of module...
 	for (var i = 7; i < data.length; i++) {
 		module.addFunction(data[i]);
@@ -115,7 +127,7 @@ MM.prototype.registerModule = function(data) {
 	module.address = address;
 	
 	this.modules.push(module);
-	console.log(modules);
+	console.log(this.modules);
 }
 MM.prototype.generateAddress = function() {
 	var address = 0;
