@@ -5,10 +5,10 @@ by modulemngr...
 
 module.exports = Module;
 
-function Module (id, mngr) {
-	this.id = id;
-	this.address = 0;
-	this.functions = new Array();
+function Module (guid, mngr) {
+	this.guid = guid;
+	this.address = 0; // address is stored as number, not as buffer!
+	this.functions = new Array(); // holds strings with functions, see funTable below...
 	
 	this.mngr = mngr; // reference to module manager, needed for callback to send data out
 	
@@ -32,9 +32,8 @@ Module.prototype.addFunction = function(fn) {
 		31: "multi-rgb",
 		40: "sound"
 	}
-	this.functions.push(funTable[data]);
+	this.functions.push(funTable[fn]);
 }
-
 
 Module.prototype.setData = function(fn, data) {
 	console.log(fn, data);

@@ -100,16 +100,63 @@ MM.prototype.sendData = function(addr, data) {
 MM.prototype.registerModule = function(data) {
 	// 0xa0: register module -- 5bytes guid, byte func_1, byte func_2, ..., byte func_n
 	var guid = data.slice(2, 6); // should return 5 bytes of data;
+	// if module with this guid is already registered, remove it from module list
+	var oldmod = this.findByGUID(guid);
+	if (oldmod !== null) {
+		this.removeModule(oldmod);
+	}
+	
 	var module = new Module(guid);
 	// go through all function bytes, set all functions of module...
 	for (var i = 7; i < data.length; i++) {
 		module.addFunction(data[i]);
 	}
-	var address = Module.getAddress(); // generates an address if none is set
+	var address = this.generateAddress();
+	module.address = address;
+	
+	this.modules.push(module);
+	console.log(modules);
+}
+MM.prototype.generateAddress = function() {
+	var address = 0;
+	while (address == 0) {
+		var address = Math.floor(Math.random() * 0xfffffffffe + 1); // 5-byte unsigned int excl. 1... :-)
+		// check if address is taken already; if it is, repeat!
+		for (var i = 0; i < this.modules.length; i++) {
+			if(this.mngr.modules[i].address == address) {
+				address = 0;
+			}
+		}
+	}
+	return address;
 }
 
+MM.prototype.removeModule = function(id) {
+	// if(typeof id === 'Buffer')
+	if(typeof id !== 'number') {
+		// assume guid-buffer here, else take as literal index in modules array
+		id = this.findByGUID(id);
+	}
+	this.modules.splice(id, 1);
+}
+
+MM.prototype.findByGUID = function(guid) {
+	var ffffound;
+	for (var i = 0; i < this.modules.length; i++) {
+		ffffound = true;
+		for (var j = 0; j < this.modules[i].guid.length; j++) {
+			if(this.modules[i].guid[j] != guid[j]) {
+				ffffound = false;
+			}
+		}
+		if(ffffound) {
+			return this.modules[i];
+		}
+	}
+	return null;
+}
 /*
-Useage:
+Usage:
 mmngr = new ModuleManager();
 
 // do setup tasks...
