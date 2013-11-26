@@ -111,7 +111,14 @@ Set the transmission rate of the device.
 Set the transmission power of the device. Less power means less energy consumption while sending!  
 **power**: The power to set. 0 => -18dbm, 1 => -12dbm, 2 => -6dbm, 3 => 0dbm.
 
-* **RF.setAutoAck(pipe, active)**  
+* **RF.setPayloadWidth(pipe, bytes)**  
+Set the payload width on a specific rx pipe
+
+* **RF.setAutoAck(mode)**  
+Enable or disable Auto Ack on all pipes  
+**mode** 1 (enable) or 0 (disable)
+
+* **RF.setAutoAckOnPipe(pipe, active)**  
 Enable or disable Auto Acknowledgement on a certain pipe.   
 **pipe**: The pipe to use, 0 to 5.  
 **active**: 1 => enable, 0 => disable.

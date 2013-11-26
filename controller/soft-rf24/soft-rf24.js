@@ -140,7 +140,8 @@ RF.prototype.rxpoll = function () {
 				var pw = buf[1];
 				// read payload
 				this.readData(pw, function(buf) {
-					this.emit('data', pipenum, buf);
+					var data = buf.slice(1);
+					this.emit('data', pipenum, data);
 					self.polling = false;
 				}.bind(this));
 			}.bind(this));
@@ -404,9 +405,20 @@ RF.prototype.setTxPower = function(power) {
 	});
 }
 
+// set payload width of pipe
+// RF.RADDR.RX_PW_P[0..1]
+RF.prototype.setPayloadWidth = function(pipe, width) {
+	this.setRegister(RF.RADDR.RX_PW_P0 + pipe, width);
+}
+
+// manage autoack globally
+RF.prototype.setAutoAck = function(mode) {
+	this.setRegister(RF.RADDR.EN_AA, 0x3f * mode); // 0x3f -> all pipes
+}
+
 // manage auto-ack on specific pipe
 // RF.RADDR.EN_AA + bit 5 to 0 for the 6 pipes
-RF.prototype.setAutoAck = function(pipe, active) {
+RF.prototype.setAutoAckOnPipe = function(pipe, active) {
 	var self = this;
 	this.readRegister(RF.RADDR.EN_AA, 1, function(buf) {
 		var currentConf = buf[1];
@@ -484,12 +496,12 @@ RF.RADDR = {
 	RX_ADDR_P4: 0x0E,	// receive-address of pipe 0
 	RX_ADDR_P5: 0x0F,	// receive-address of pipe 0
 	TX_ADDR: 	0x10, // transmit address
-	RX_PW_P0: 	0x11, // numbytes (received) in pipe 0 (1..32)
-	RX_PW_P1: 	0x12, // numbytes (received) in pipe 0 (1..32)
-	RX_PW_P2: 	0x13, // numbytes (received) in pipe 0 (1..32)
-	RX_PW_P3: 	0x14, // numbytes (received) in pipe 0 (1..32)
-	RX_PW_P4: 	0x15, // numbytes (received) in pipe 0 (1..32)
-	RX_PW_P5: 	0x16, // numbytes (received) in pipe 0 (1..32)
+	RX_PW_P0: 	0x11, // payload width pipe 0 (1..32, 0 disables pipe?!)
+	RX_PW_P1: 	0x12, // payload width pipe 0 (1..32, 1 disables pipe?!)
+	RX_PW_P2: 	0x13, // payload width pipe 0 (1..32, 2 disables pipe?!)
+	RX_PW_P3: 	0x14, // payload width pipe 0 (1..32, 3 disables pipe?!)
+	RX_PW_P4: 	0x15, // payload width pipe 0 (1..32, 4 disables pipe?!)
+	RX_PW_P5: 	0x16, // payload width pipe 0 (1..32, 5 disables pipe?!)
 	FIFO_STATUS: 0x17, // fifo status... duh
 	DYNPD: 		0x1C,	// enable dynamic payload on pipes (disabled by default!)
 	FEATURE: 	0x1D, // special features :-) (dynamic payload, ack payload)
