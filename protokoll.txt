@@ -14,7 +14,7 @@ channel 127 for discovery! changeable via configuration later...
 address 0 for registration with central node
 # central node waits on addr 0 for incoming registration requests with guid from certain module
 # recv packet: addr(0), data[(info)0x00, (func)0xa0, ...] (see below for functions...)
-# answers with: addr(0), data[(info)0x00, (func)0x01, (nbytes)guid, (5bytes)addr]
+# answers with: addr(0), data[(info)0x00, (func)0x01, (5 bytes)guid, (5bytes)addr]
 ## (on unsuccessful registration due to packet loss module repeats registration. Registration with double guid drops the first one on the central node.)
 # => module goes into rx mode
 
