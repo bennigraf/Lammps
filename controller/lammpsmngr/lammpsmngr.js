@@ -1,6 +1,6 @@
 /*
 Lammpsmngr calls modulemngr, manages all connections to the outside (DMX, MIDI, OSC, ...), 
-provides JSon-API for GUI-stuff (which should be the same as the OSC-API)...
+provides json-API for GUI-stuff (which should be the same as the OSC-API)...
 */
 
 
@@ -10,33 +10,36 @@ function LM() {
 	
 	var MM = require('../modulemngr/modulemngr.js');
 	this.mm = new MM();
+	this.mm.createFakeModules();
 	
 	// OSC init...
 	// OSC paths init...
 	var osccli = require('./osccli.js');
 	
 	
-	var wa = require('./webapp.js');
-	console.log(wa);
-	wa(this);
+	var webApp = require('./webapp.js');
+	webApp(this);
+	// console.log(webApp);
 }
 
 LM.prototype.listmodules = function() {
+	// return modules;
+	var modules = this.mm.listModules();
 	return modules;
 }
-LM.prototype.getmodule = function(id) {
+LM.prototype.getmodule = function(guid) {
 	var module = new Array;
-	if(id === undefined) { return false }
-	for (var i=0; i < modules.length; i++) {
-		if(modules[i]["id"] == id) {
-			module = modules[i];
-		}
-	};
+	if(guid === undefined) { return false }
+	guid = new Buffer(guid);
+	module = this.mm.findByGUID(guid);
 	return module;
 }
 LM.prototype.setdata = function(id, fn, data) {
 	// console.log(id, this.mm.modules);
-	this.mm.modules[id].setData(fn, data);
+	var mod = this.mm.findByGUID(id);
+	if(mod!=null) {
+		mod.setData(fn, data);
+	}
 }
 
 

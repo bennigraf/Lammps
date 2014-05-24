@@ -62,11 +62,12 @@ $().ready(function(){
 	
 	router.get("/manage-modules", function() {
 		var modules = $.get("/listmodules", {}, function(data, status) {
+			console.log(data, status);
 			var modules = data;
 			var haml_modules = new Array();
 			for (var i=0; i < modules.length; i++) {
+				var id = modules[i].title;
 				var title = modules[i].title;
-				var id = modules[i].id;
 				var haml = ["%li", ["%a", {class: "nav", href: "#/manage-modules/modules/"+id }, title]];
 				haml_modules.push(haml);
 			};
@@ -85,9 +86,9 @@ $().ready(function(){
 			var module = data;
 			
 			var haml = ["%dl", 
-						["%dt", "Title"], ["%dd", module.title],
-						["%dt", "ID"], ["%dd", module.id],
-						["%dt", "Location"], ["%dd", module.location.join(", ")],
+						["%dt", "GUID"], ["%dd", module.title],
+						// ["%dt", "ID"], ["%dd", module.id],
+						// ["%dt", "Location"], ["%dd", module.location.join(", ")],
 						["%dt", "Functionalities"], ["%dd", module.functions.join(", ")],
 					];
 			free_cols(3)
@@ -98,7 +99,7 @@ $().ready(function(){
 			// set sliders/handlers for functionalities...
 			for (var i=0; i < module.functions.length; i++) {
 				switch(module.functions[i]) {
-					case "color":
+					case "rgb":
 						col.haml(["%h4", "Set color"]);
 						col.haml(["%p", "Red", [".slider", {class: "red"}]]);
 						col.haml(["%p", "Green", [".slider", {class: "green"}]]);
@@ -106,7 +107,7 @@ $().ready(function(){
 						col.find(".slider.red, .slider.green, .slider.blue").slider().on('slide', function() {
 							var rgb = get_rgb_values();
 							console.log(rgb);
-							$.get("/modules/"+id+"/setdata", {function: "color", r: rgb[0], g: rgb[1], b: rgb[2]});
+							$.get("/modules/"+id+"/setdata", {function: "rgb", r: rgb[0], g: rgb[1], b: rgb[2]});
 						});
 						function get_rgb_values() {
 							var r = col.find(".slider.red").slider("value") / 100;

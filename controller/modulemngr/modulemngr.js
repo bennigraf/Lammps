@@ -65,6 +65,7 @@ MM.prototype.boot = function () {
 	return false;
 }
 
+// process data recieved from a module
 MM.prototype.rcvData = function(pipe, data) {
 	console.log("data received!");
 	console.log(data);
@@ -73,24 +74,26 @@ MM.prototype.rcvData = function(pipe, data) {
 	// bit 7: startpacket of multi-packet-transaction (mask: 0x80)
 	// bit 6: packet is part of --- " --- (mask: 0x40)
 	// bit 5-0: (opt) payload with (mask: 0x1f)
-	if(data[0] & 0x80) {
+	if(data[0] & 0x80) { // true if first bit is set
 		this.newDataStack(data[0] & 0x1f);
 		this.putDataOnStack(data);
 	}
-	if(data[0] & 0x40) {
+	if(data[0] & 0x40) { // true if 2nd bit is set
 		this.putDataOnStack(data);
 	}
+	// TODO: Implement data stack... bang parsedata when stack has expected size; what happens if other packet interferes?? fuck...
 	
 	// no multipacket thing, parse data directly
-	if((data[0] & 0x80) === 0) {
+	if((data[0] & 0x80) == 0) {
 		this.parseData(data);
 	}
 }
+// parse data received from a module
 MM.prototype.parseData = function(data) {
 	// byte1: command
 	// 0x00: reboot/reset (of module, not cn)
-	// 0xa0: register module -- 5bytes guid, byte func_1, byte func_2, ..., byte func_n
-	if(data[1] & 0xa) {
+	// 0x10: register module -- 5bytes guid, byte func_1, byte func_2, ..., byte func_n
+	if(data[1] == 0x10) {
 		this.registerModule(data);
 	}
 	
@@ -108,9 +111,55 @@ MM.prototype.sendData = function(addr, data) {
 	this.rf.sendToFifo(data);
 }
 
+// send a packet (or many depending on data length)
+// addr: hardware-address to send to
+// cmd: cmd to send (cmd-byte is byte 2)
+// data: data-bytes...
+MM.prototype.sendPacket = function(addr, cmd, data) {
+	console.log(this.modules);
+	console.log(addr);
+	this.rf.setTxAddress(addr);
+	this.rf.setRxAddress(0, addr); // pipe 0 for autoack? If we use it...
+	var infoByte = Buffer([this.makeInfoByte(data.length)]);
+	var cmdByte = Buffer([cmd]);
+	var data = Buffer.concat([infoByte, cmdByte, data]);
+	console.log(data);
+	// this.rf
+}
+MM.prototype.makeInfoByte = function(size) {
+	var byte = 0x80 & 0x00 + 0x40 & 0x00 + 0x00; // TODO: implement multipacket-transactions...
+	return byte;
+}
+
+MM.prototype.listModules = function() {
+	var modules = this.modules;
+	return modules;
+}
+MM.prototype.createFakeModules = function() {
+	var fmods = [
+		{ guid: 'xhhee', 'location': [0, 0], 'functions': [0x20, 0x30] }, // funcs: dim&col
+		{ guid: 'ddwgq', 'location': [0, 1], 'functions': [0x20, 0x30] },
+		{ guid: 'askwb', 'location': [1, 0], 'functions': [0x20, 0x30] },
+		{ guid: 'icosz', 'location': [1, 0], 'functions': [0x40] } // funcs: snd
+	];
+	var data = new Buffer([0x10, 0x10]); // register module
+	for (var i = 0; i < fmods.length; i++) {
+		var mod = fmods[i];
+		var guid = new Buffer(mod['guid']);
+		var funs = mod['functions'];
+		var funBytes = new Buffer(0);
+		for (var j = 0; j < funs.length; j++) {
+			funBytes = Buffer.concat([funBytes, new Buffer([funs[j]]) ]);
+		}
+		var thisdata = Buffer.concat([ data, guid, funBytes ]);
+		this.registerModule(thisdata);
+	}
+	
+}
+
 MM.prototype.registerModule = function(data) {
 	console.log("registering module");
-	// 0xa0: register module -- 5bytes guid, byte func_1, byte func_2, ..., byte func_n
+	// 0x10: register module -- 5bytes guid, byte func_1, byte func_2, ..., byte func_n
 	var guid = data.slice(2, 7); // should return 5 bytes of data;
 	// if module with this guid is already registered, remove it from module list
 	var oldmod = this.findByGUID(guid);
@@ -127,15 +176,19 @@ MM.prototype.registerModule = function(data) {
 	module.address = address;
 	
 	this.modules.push(module);
-	console.log(this.modules);
+	// console.log(this.modules);
+	// console.log(module);
+	
+	// TODO: send packet back to module - info-byte, 0x01, (5bytes)guid, (5bytes)addr
 }
 MM.prototype.generateAddress = function() {
 	var address = 0;
 	while (address == 0) {
-		var address = Math.floor(Math.random() * 0xfffffffffe + 1); // 5-byte unsigned int excl. 1... :-)
+		// var address = Math.floor(Math.random() * 0xfffffffffe + 1); // 5-byte unsigned int excl. 1... :-)
+		var address = Math.floor(Math.random() * 0x00fffffffe + 1); // 4-byte unsigned int excl. 1... :-)
 		// check if address is taken already; if it is, repeat!
 		for (var i = 0; i < this.modules.length; i++) {
-			if(this.mngr.modules[i].address == address) {
+			if(this.modules[i].address == address) {
 				address = 0;
 			}
 		}
@@ -153,15 +206,8 @@ MM.prototype.removeModule = function(id) {
 }
 
 MM.prototype.findByGUID = function(guid) {
-	var ffffound;
 	for (var i = 0; i < this.modules.length; i++) {
-		ffffound = true;
-		for (var j = 0; j < this.modules[i].guid.length; j++) {
-			if(this.modules[i].guid[j] != guid[j]) {
-				ffffound = false;
-			}
-		}
-		if(ffffound) {
+		if(this.modules[i].guid.toString() == guid.toString()) {
 			return this.modules[i];
 		}
 	}
