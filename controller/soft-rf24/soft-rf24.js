@@ -528,7 +528,7 @@ RF.prototype.setBit = function (byte, mask, value) {
 }
 
 // convert (Number)(float?)addr to 40bit int (5 bytes...), throw away msbs
-addrToBuf = function (addr) {
+RF.prototype.addrToBuf = function (addr) {
 	var buf = new Buffer(5);
 	buf.fill(0x00);
 	
