@@ -143,12 +143,12 @@ MM.prototype.sendData = function(addr, data) {
 // cmd: cmd to send (cmd-byte is byte 2)
 // data: data-bytes...
 MM.prototype.sendPacket = function(addr, cmd, data) {
-	this.rf.setTxAddress(addr);
-	this.rf.setRxAddress(0, addr); // pipe 0 for autoack? If we use it...
+	var pipe = this.nrf.openPipe('tx', addr, {autoAck: false});
 	var infoByte = Buffer([this.makeInfoByte(data.length)]);
 	var cmdByte = Buffer([cmd]);
 	var data = Buffer.concat([infoByte, cmdByte, data]);
 	console.log(data);
+	// pipe.write(data);
 	// this.rf
 }
 MM.prototype.makeInfoByte = function(size) {
