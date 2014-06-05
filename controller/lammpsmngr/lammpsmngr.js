@@ -15,7 +15,7 @@ function LM() {
 	// OSC init...
 	// OSC paths init...
 	var osccli = require('./osccli.js');
-	
+	osccli(this);
 	
 	var webApp = require('./webapp.js');
 	webApp(this);
