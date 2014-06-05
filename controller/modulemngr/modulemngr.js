@@ -1,6 +1,16 @@
 
-var RF = require('../soft-rf24/soft-rf24.js');
+// var RF = require('../soft-rf24/soft-rf24.js');
 var Module = require('./module.js');
+try {
+	NRF24 = require('nrf');
+} catch (e) {
+	console.log("NRF COULD NOT BE LOADED! Using fake nrf module for testing purposes...");
+	console.log(e)
+	NRF24 = require('./fake-nrf.js');
+	console.log(NRF24);
+	NRF24 = NRF24["NRF24"];
+	NRF24 = new NRF24;
+}
 
 // export stuff...
 module.exports = MM;
@@ -9,6 +19,7 @@ module.exports = MM;
 function MM () {
 	// setup module manager
 	
+	/*
 	this.rf = new RF("/dev/spidev0.0");
 	this.rf.on('ready', function() {
 		this.rf.setAddrWidth(5); 			// address width - 5 bytes
@@ -31,13 +42,28 @@ function MM () {
 		this.rf.setPWR(1); 					// powers up
 		this.rf.startAutoMode();	
 	}.bind(this));
-	
 	this.rf.on('data', this.rcvData.bind(this));	
+	 */
 	
+	// pin numbers from /sys/class/gpio numbering, I assume this: http://raspberrypiguide.de/howtos/raspberry-pi-gpio-how-to/
+	var spidev = "/dev/spidev0.0", cePin = 24, irqPin = 25;
+	console.log(NRF24);
+	this.nrf = NRF24.connect(spidev, cePin, irqPin);
+	this.nrf.channel(127).dataRate('2Mbps').crcBytes(2);
+	this.nrf.begin();
+	this.nrf.on('ready', function() {
+		this.nrfRx = this.nrf.openPipe('rx', 0x0000000000, {autoAck: false}); // used to wait for registration requests
+		// tx stuff only openend when neccessary...
+	
+		this.nrfRx.on('readable', function() {
+			// process registration request
+			var data = this.nrfRx.read();
+			console.log("RX on pipe 0!", data);
+			this.rcvData(0, data);
+		}.bind(this));
+	}.bind(this));
 	
 	this.modules = new Array();
-
-
 
 	// this.modules["xhhe"] = new Module("xhhe", this);
 	// this.modules["xhhe"].address = 8859435828;
@@ -108,7 +134,8 @@ MM.prototype.sendData = function(addr, data) {
 	/* hack: empty tx fifo */
 	// this.rf.spi.write(new Buffer([0xe1, 0x00])); // FLUSH_TX
 	// this.rf.setRegister(0x07, 0x10); // MAX_RT
-	this.rf.sendToFifo(data);
+	// this.rf.sendToFifo(data);
+	this.nrf.openPipe('tx', addr, {autoAck: false}).write(data);
 }
 
 // send a packet (or many depending on data length)
