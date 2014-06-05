@@ -50,6 +50,9 @@ module.exports = function(lm) {
 		var id = req.params["id"];
 		var func = req.query["function"];
 		switch(func) {
+			case "dim":
+				lm.setdata(id, "dim", req.query["value"]);
+				break;
 			case "rgb":
 				lm.setdata(id, "rgb", [req.query["r"], req.query["g"], req.query["b"]]);
 				break;

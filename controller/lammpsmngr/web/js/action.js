@@ -101,23 +101,33 @@ $().ready(function(){
 				switch(module.functions[i]) {
 					case "rgb":
 						col.haml(["%h4", "Set color"]);
-						col.haml(["%p", "Red", [".slider", {class: "red"}]]);
-						col.haml(["%p", "Green", [".slider", {class: "green"}]]);
-						col.haml(["%p", "Blue", [".slider", {class: "blue"}]]);
-						col.find(".slider.red, .slider.green, .slider.blue").slider().on('slide', function() {
+						col.haml(["%p", "Red", [".slider", {class: "rgb red"}]]);
+						col.haml(["%p", "Green", [".slider", {class: "rgb green"}]]);
+						col.haml(["%p", "Blue", [".slider", {class: "rgb blue"}]]);
+						var setColor = function() {
 							var rgb = get_rgb_values();
 							console.log(rgb);
 							$.get("/modules/"+id+"/setdata", {function: "rgb", r: rgb[0], g: rgb[1], b: rgb[2]});
-						});
+						}
 						function get_rgb_values() {
 							var r = col.find(".slider.red").slider("value") / 100;
 							var g = col.find(".slider.green").slider("value") / 100;
 							var b = col.find(".slider.blue").slider("value") / 100;
 							return [r, g, b];
 						}
+						col.find(".slider.rgb").slider().on('slide', setColor);
+						col.find(".slider.rgb").slider().on('slidestop', setColor);
 						break;
 					case "dim":
-					
+						col.haml(["%h4", "Set value"]);
+						col.haml(["%p", "Dim", [".slider", {class: "dim"}]]);
+						var setValue = function() {
+							var val = col.find(".slider.dim").slider("value") / 100;
+							console.log(val);
+							$.get("/modules/"+id+"/setdata", {function: "dim", value: val});
+						}
+						col.find(".slider.dim").slider().on('slide', setValue);
+						col.find(".slider.dim").slider().on('slidestop', setValue);
 						break;
 					case "sound":
 					
