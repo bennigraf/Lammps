@@ -35,7 +35,7 @@ module.exports = function(lm) {
 			var m = modules[i];
 			var title = "GUID: " + m['guid'][0] + ":" + m['guid'][1] + ":" + m['guid'][2] + ":" + m['guid'][3] + ":" + m['guid'][4];
 			// myModules.push({ 'title': m['guid'].toString(), 'guid': m['guid'], address: m['address'], functions: m['functions'] });
-			myModules.push({ 'title': title, 'guid': m['guid'], address: m['address'], functions: m['functions'] });
+			myModules.push({ 'title': title, 'guid': m['guid'].toString(), address: m['address'], functions: m['functions'] });
 		}
 		console.log(myModules);
 		res.send(myModules);
