@@ -8,7 +8,7 @@ module.exports = LM;
 
 function LM() {
 	
-	var MM = require('../modulemngr/modulemngr.js');
+	var MM = require('./modulemngr/modulemngr.js');
 	this.mm = new MM();
 	this.mm.createFakeModules();
 	

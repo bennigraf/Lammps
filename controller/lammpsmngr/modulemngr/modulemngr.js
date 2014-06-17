@@ -149,7 +149,8 @@ MM.prototype.sendPacket = function(addr, cmd, data) {
 	var cmdByte = Buffer([cmd]);
 	var data = Buffer.concat([infoByte, cmdByte, data]);
 	console.log(data);
-	// pipe.write(data);
+	pipe.write(data);
+	pipe.close();
 	// this.rf
 }
 MM.prototype.makeInfoByte = function(size) {
