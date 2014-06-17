@@ -49,7 +49,7 @@ function MM () {
 	var spidev = "/dev/spidev0.0", cePin = 24, irqPin = 25;
 	console.log(NRF24);
 	this.nrf = NRF24.connect(spidev, cePin, irqPin);
-	this.nrf.channel(127).dataRate('2Mbps').crcBytes(2);
+	this.nrf.channel(125).dataRate('2Mbps').crcBytes(2);
 	this.nrf.begin();
 	this.nrf.on('ready', function() {
 		var addrBuf = new Buffer(5);
