@@ -9,7 +9,8 @@ RF-Setup:
 dynamic payload width
 no autoack
 5byte addr width
-channel 127 for discovery! changeable via configuration later...
+channel 125 for discovery! changeable via configuration later...
+(channel 127 seems to be not working on my devices)
 
 address 0 for registration with central node
 # central node waits on addr 0 for incoming registration requests with guid from certain module
