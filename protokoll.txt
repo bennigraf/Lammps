@@ -14,8 +14,8 @@ channel 125 for discovery! changeable via configuration later...
 
 address 0 for registration with central node
 # central node waits on addr 0 for incoming registration requests with guid from certain module
-# recv packet: addr(0), data[(info)0x00, (func)0xa0, ...] (see below for functions...)
-# answers with: addr(0), data[(info)0x00, (func)0x01, (nbytes)guid, (5bytes)addr]
+# recv packet: addr(0), data[(info)0x00, (func)0x10, ...] (see below for functions...)
+# answers with: addr(0), data[(info)0x00, (func)0x01, (5 bytes)guid, (5bytes)addr]
 ## (on unsuccessful registration due to packet loss module repeats registration. Registration with double guid drops the first one on the central node.)
 # => module goes into rx mode
 
@@ -27,16 +27,16 @@ byte 1: command
 
 
 
-RF-Paket towards module:
+RF-Paket towards module (address set in hardware!):
 byte 0: info
-# 7: startpacket of multipacket-transaction
-# 6: packet is part of multipacket-transaction
-# 4-0: packet-count of multipacket-transaction
+bit 7: startpacket of multipacket-transaction
+bit 6: packet is part of multipacket-transaction
+bit 4-0: packet-count of multipacket-transaction
 
 byte 1: command
 0:		reset/reboot
 1-9: 	reserved for configuraiton
-	1: set rx address for certain guid
+	1: set rx address for certain guid; byte2-6 guid, byte 7-11 address
 10: 	raw data
 20: 	dim
 21:		multi-dim

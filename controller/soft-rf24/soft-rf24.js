@@ -527,20 +527,23 @@ RF.prototype.setBit = function (byte, mask, value) {
 	return retByte;
 }
 
-// Helper: calc address to 5-byte-buffer-thingy, lsb first
+// convert (Number)(float?)addr to 40bit int (5 bytes...), throw away msbs
 RF.prototype.addrToBuf = function (addr) {
-	var buf = new Buffer(8);
+	var buf = new Buffer(5);
 	buf.fill(0x00);
-	// convert (Number)addr to 32bit int, throw away msbs
-	var laddr = addr & 0xffffffff; // laddr represents the 4 lsbs
-	// calculate value of msbs of virtual 64bit int
-	var baddr = addr - laddr;
-	// mathematically shift 64bit msbs 32 bits to the right
-	var baddrShift = baddr / Math.pow(2, 32);
-	// write both to buffer
-	buf.writeUInt32LE(laddr, 0);
-	buf.writeUInt32LE(baddrShift, 4);
-	buf = buf.slice(0, 5);
+	
+	var nullx0100000000 = 4294967296;
+	
+	// addr/2^32 is the same as a right-shift 32 times => msb remians
+	// the shift-thingy is to achieve proper int division, basically same as .floor; http://stackoverflow.com/questions/4228356/integer-division-in-javascript
+	var msb = (addr/nullx0100000000>>0); 
+	
+	// now left-shift msb again (lsbs are all 0 now) and substract that from addr => lsbs remain
+	var lsbs = addr - (msb * nullx0100000000);
+	
+	// write them to buffer
+	buf.writeUInt8(msb, 0);
+	buf.writeUInt32BE(lsbs, 1);
 	return buf;
 }
 

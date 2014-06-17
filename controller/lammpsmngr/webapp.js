@@ -29,24 +29,29 @@ module.exports = function(lm) {
 	
 	app.get('/listmodules', function(req, res) {
 		var modules = lm.listmodules();
-		res.send(modules);
+		var myModules = [];
+		for (var i = 0; i < modules.length; i++) {
+			// create copy of modules here, otherwise I'd be modifying original module
+			var m = modules[i];
+			myModules.push({ 'title': m['guid'].toString(), 'guid': m['guid'], address: m['address'], functions: m['functions'] });
+		}
+		console.log(myModules);
+		res.send(myModules);
 	});
 	
 	app.get('/modules/:id', function(req, res) {
-		var id = req.params["id"];
-		var module = lm.getmodule(id);
-		res.send(module);
+		var guid = req.params["id"];
+		var m = lm.getmodule(guid);
+		var myModule = { 'title': m['guid'].toString(), 'guid': m['guid'], address: m['address'], functions: m['functions'] };
+		res.send(myModule);
 	});
 	
 	app.get('/modules/:id/setdata', function(req, res) {
 		var id = req.params["id"];
 		var func = req.query["function"];
-		var r = req.query["r"];
-		var g = req.query["g"];
-		var b = req.query["b"];
 		switch(func) {
-			case "color":
-				lm.setdata(id, "color", [r, g, b]);
+			case "rgb":
+				lm.setdata(id, "rgb", [req.query["r"], req.query["g"], req.query["b"]]);
 				break;
 		}
 		res.send();

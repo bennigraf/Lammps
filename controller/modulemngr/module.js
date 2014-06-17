@@ -25,20 +25,21 @@ Module.prototype.addFunction = function(fn) {
 	// 40:	sound/synth
 	// TODO: define this elsewhere
 	var funTable = {
-		10: "raw",
-		20: "dim",
-		21: "multi-dim",
-		30: "rgb",
-		31: "multi-rgb",
-		40: "sound"
+		0x10: "raw",
+		0x20: "dim",
+		0x21: "multi-dim",
+		0x30: "rgb",
+		0x31: "multi-rgb",
+		0x40: "sound"
 	}
 	this.functions.push(funTable[fn]);
 }
 
 Module.prototype.setData = function(fn, data) {
-	console.log(fn, data);
+	// console.log("setting data in module ", this.guid.toString());
+	// console.log(fn, data);
 	switch(fn) {
-		case "color":
+		case "rgb":
 			this.sendColor(data);
 			break;
 	}
@@ -50,11 +51,10 @@ Module.prototype.sendColor = function(data) {
 	function toInt(num) {
 		return Math.round(num*255);
 	}
-	var fsize = 0x00; // 1st byte of packet
-	var fn = 0x00; // 2nd byte of packet
 	var r = toInt(data[0]);
 	var g = toInt(data[1]); 
 	var b = toInt(data[2]);
+	// var colrBuf = new Buffer(3);
 	// hack: must have 15 clr bytes/17 bytes in total
 	var colrBuf = new Buffer(15);
 	colrBuf.fill(0x00);
@@ -64,6 +64,6 @@ Module.prototype.sendColor = function(data) {
 	// for (var i = 0; i < colrBuf.length; i++) {
 	// 	colrBuf[i] = toInt(data[i%3]);
 	// }
-	var dataBuf = Buffer.concat([new Buffer([fsize, fn]), colrBuf]);
-	this.mngr.sendData(this.address, dataBuf);
+	this.mngr.sendPacket(this.address, 0x30, colrBuf);
+	// this.mngr.sendData(this.address, dataBuf);
 }
