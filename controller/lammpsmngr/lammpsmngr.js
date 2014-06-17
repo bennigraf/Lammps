@@ -10,7 +10,7 @@ function LM() {
 	
 	var MM = require('./modulemngr/modulemngr.js');
 	this.mm = new MM();
-	this.mm.createFakeModules();
+	//setTimeout(function() { this.mm.createFakeModules(); }.bind(this), 5000);
 	
 	// OSC init...
 	// OSC paths init...

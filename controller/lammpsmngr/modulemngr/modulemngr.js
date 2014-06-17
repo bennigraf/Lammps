@@ -1,3 +1,4 @@
+require('buffertools').extend();
 
 // var RF = require('../soft-rf24/soft-rf24.js');
 var Module = require('./module.js');
@@ -59,8 +60,11 @@ function MM () {
 		this.nrfRx.on('readable', function(data) {
 			// process registration request
 			var data = this.nrfRx.read();
-			console.log("RX!!!", data);
-			//this.rcvData(0, data);
+			if(data != null) {
+				data = data.reverse();
+				console.log("RX!!!", data);
+				this.rcvData(0, data);
+			}
 		}.bind(this));
 		this.nrfRx.on('data', function(chunk) {
 			console.log('got %d bytes of data', chunk.length);
@@ -105,11 +109,11 @@ MM.prototype.rcvData = function(pipe, data) {
 	// bit 6: packet is part of --- " --- (mask: 0x40)
 	// bit 5-0: (opt) payload with (mask: 0x1f)
 	if(data[0] & 0x80) { // true if first bit is set
-		this.newDataStack(data[0] & 0x1f);
-		this.putDataOnStack(data);
+		//this.newDataStack(data[0] & 0x1f);
+		//this.putDataOnStack(data);
 	}
 	if(data[0] & 0x40) { // true if 2nd bit is set
-		this.putDataOnStack(data);
+		//this.putDataOnStack(data);
 	}
 	// TODO: Implement data stack... bang parsedata when stack has expected size; what happens if other packet interferes?? fuck...
 	
@@ -152,9 +156,10 @@ MM.prototype.sendPacket = function(addr, cmd, data) {
 	var infoByte = Buffer([this.makeInfoByte(data.length)]);
 	var cmdByte = Buffer([cmd]);
 	var data = Buffer.concat([infoByte, cmdByte, data]);
-	console.log(data);
+	data = data.reverse();	
 	pipe.write(data);
 	pipe.close();
+	console.log("written data: ", data);
 	// this.rf
 }
 MM.prototype.makeInfoByte = function(size) {
@@ -197,20 +202,23 @@ MM.prototype.registerModule = function(data) {
 	if (oldmod !== null) {
 		this.removeModule(oldmod);
 	}
-	
 	var module = new Module(guid, this);
 	// go through all function bytes, set all functions of module...
 	for (var i = 7; i < data.length; i++) {
 		module.addFunction(data[i]);
 	}
 	var address = this.generateAddress();
+	var addrBuf = new Buffer(5);
+	addrBuf.writeUInt32BE(address, 1);
 	module.address = address;
-	
+	console.log(guid, addrBuf);
 	this.modules.push(module);
-	// console.log(this.modules);
+	console.log(this.modules);
 	// console.log(module);
 	
 	// TODO: send packet back to module - info-byte, 0x01, (5bytes)guid, (5bytes)addr
+	var nswr = new Buffer([guid[0], guid[1], guid[2], guid[3], guid[4], addrBuf[0], addrBuf[1], addrBuf[2], addrBuf[3], addrBuf[4]]);
+	this.sendPacket(new Buffer([0, 0, 0, 0, 0]), 0x01, nswr);
 }
 MM.prototype.generateAddress = function() {
 	var address = 0;
@@ -238,6 +246,7 @@ MM.prototype.removeModule = function(id) {
 
 MM.prototype.findByGUID = function(guid) {
 	for (var i = 0; i < this.modules.length; i++) {
+		console.log("Guids:", this.modules[i].guid.toString(), guid.toString());
 		if(this.modules[i].guid.toString() == guid.toString()) {
 			return this.modules[i];
 		}
