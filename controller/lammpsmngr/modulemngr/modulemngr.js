@@ -54,7 +54,7 @@ function MM () {
 	this.nrf.on('ready', function() {
 		var addrBuf = new Buffer(5);
 		addrBuf.fill(0);
-		this.nrfRx = this.nrf.openPipe('rx', addrBuf, {autoAck: false}); // used to wait for registration requests
+		this.nrfRx = this.nrf.openPipe('rx', addrBuf); // used to wait for registration requests
 		// tx stuff only openend when neccessary...
 	
 		this.nrfRx.on('readable', function() {
@@ -138,7 +138,7 @@ MM.prototype.sendData = function(addr, data) {
 	// this.rf.spi.write(new Buffer([0xe1, 0x00])); // FLUSH_TX
 	// this.rf.setRegister(0x07, 0x10); // MAX_RT
 	// this.rf.sendToFifo(data);
-	this.nrf.openPipe('tx', addr, {autoAck: false}).write(data);
+	this.nrf.openPipe('tx', addr).write(data);
 }
 
 // send a packet (or many depending on data length)
