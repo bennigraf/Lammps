@@ -52,17 +52,21 @@ function MM () {
 	this.nrf.channel(125).dataRate('2Mbps').crcBytes(2);
 	this.nrf.begin();
 	this.nrf.on('ready', function() {
+		this.nrf.printDetails();
 		var addrBuf = new Buffer(5);
 		addrBuf.fill(0);
 		this.nrfRx = this.nrf.openPipe('rx', addrBuf); // used to wait for registration requests
 		// tx stuff only openend when neccessary...
-	
-		this.nrfRx.on('readable', function() {
+		
+		this.nrfRx.on('readable', function(data) {
 			// process registration request
 			var data = this.nrfRx.read();
 			console.log("RX on pipe 0!", data);
-			this.rcvData(0, data);
+			//this.rcvData(0, data);
 		}.bind(this));
+		this.nrfRx.on('data', function(chunk) {
+			console.log('got %d bytes of data', chunk.length);
+		});
 	}.bind(this));
 	
 	this.modules = new Array();
