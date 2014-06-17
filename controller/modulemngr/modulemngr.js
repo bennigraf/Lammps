@@ -125,6 +125,7 @@ MM.prototype.parseData = function(data) {
 	
 }
 
+/* DEPRECATED */
 MM.prototype.sendData = function(addr, data) {
 	this.rf.setTxAddress(addr);
 	this.rf.setRxAddress(0, addr); // pipe 0 needed to recv autoack
