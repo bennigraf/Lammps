@@ -17,3 +17,7 @@ radio.begin(function () {
 radio.on('error', function(e){
 	console.log(e);
 });
+setInterval(function(){
+//	console.log("//////////////////////print again: ");
+//	radio.printDetails();
+}, 5000);
