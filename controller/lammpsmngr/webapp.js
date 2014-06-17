@@ -33,7 +33,9 @@ module.exports = function(lm) {
 		for (var i = 0; i < modules.length; i++) {
 			// create copy of modules here, otherwise I'd be modifying original module
 			var m = modules[i];
-			myModules.push({ 'title': m['guid'].toString(), 'guid': m['guid'], address: m['address'], functions: m['functions'] });
+			var title = "GUID: " + m['guid'][0] + ":" + m['guid'][1] + ":" + m['guid'][2] + ":" + m['guid'][3] + ":" + m['guid'][4];
+			// myModules.push({ 'title': m['guid'].toString(), 'guid': m['guid'], address: m['address'], functions: m['functions'] });
+			myModules.push({ 'title': title, 'guid': m['guid'], address: m['address'], functions: m['functions'] });
 		}
 		console.log(myModules);
 		res.send(myModules);
@@ -42,7 +44,9 @@ module.exports = function(lm) {
 	app.get('/modules/:id', function(req, res) {
 		var guid = req.params["id"];
 		var m = lm.getmodule(guid);
-		var myModule = { 'title': m['guid'].toString(), 'guid': m['guid'], address: m['address'], functions: m['functions'] };
+		// var myModule = { 'title': m['guid'].toString(), 'guid': m['guid'], address: m['address'], functions: m['functions'] };
+		var title = "GUID: " + m['guid'][0] + ":" + m['guid'][1] + ":" + m['guid'][2] + ":" + m['guid'][3] + ":" + m['guid'][4];
+		var myModule = { 'title': title, 'guid': m['guid'], address: m['address'], functions: m['functions'] };
 		res.send(myModule);
 	});
 	

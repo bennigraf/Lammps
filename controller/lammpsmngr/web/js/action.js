@@ -62,13 +62,13 @@ $().ready(function(){
 	
 	router.get("/manage-modules", function() {
 		var modules = $.get("/listmodules", {}, function(data, status) {
-			console.log(data, status);
+			console.log(status, data);
 			var modules = data;
 			var haml_modules = new Array();
 			for (var i=0; i < modules.length; i++) {
 				var id = modules[i].title;
 				var title = modules[i].title;
-				var haml = ["%li", ["%a", {class: "nav", href: "#/manage-modules/modules/"+id }, title]];
+				var haml = ["%li", ["%a", {class: "nav", href: "#/manage-modules/modules/"+id }, "Modul"]];
 				haml_modules.push(haml);
 			};
 			
