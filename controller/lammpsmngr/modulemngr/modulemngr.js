@@ -159,7 +159,7 @@ MM.prototype.sendPacket = function(addr, cmd, data) {
 	data = data.reverse();	
 	pipe.write(data);
 	pipe.close();
-	console.log("written data: ", data);
+	console.log("written data to: ", addr, data);
 	// this.rf
 }
 MM.prototype.makeInfoByte = function(size) {
@@ -208,7 +208,7 @@ MM.prototype.registerModule = function(data) {
 		module.addFunction(data[i]);
 	}
 	var address = this.generateAddress();
-	var addrBuf = new Buffer(5);
+	var addrBuf = new Buffer(5).fill(0);
 	addrBuf.writeUInt32BE(address, 1);
 	module.address = address;
 	console.log(guid, addrBuf);
@@ -247,7 +247,11 @@ MM.prototype.removeModule = function(id) {
 MM.prototype.findByGUID = function(guid) {
 	for (var i = 0; i < this.modules.length; i++) {
 		console.log("Guids:", this.modules[i].guid.toString(), guid.toString());
-		if(this.modules[i].guid.toString() == guid.toString()) {
+		var found = false;
+		for(var j = 0; j < guid.length; j++) {
+			if(guid[j] != this.modules[i].guid[j]) {
+				return false;
+			}
 			return this.modules[i];
 		}
 	}

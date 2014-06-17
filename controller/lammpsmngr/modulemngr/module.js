@@ -75,6 +75,8 @@ Module.prototype.sendColor = function(data) {
 	colrBuf[0] = toInt(data[0]);
 	colrBuf[1] = toInt(data[1]); 
 	colrBuf[2] = toInt(data[2]);
+	//var newBuf = new Buffer(15);
+	//newBuf[0] = colrBuf[0]; newBuf[1] = colrBuf[1]; newBuf[2] = colrBuf[2];
 	this.mngr.sendPacket(this.address, 0x30, colrBuf);
 	// this.mngr.sendData(this.address, dataBuf);
 }
