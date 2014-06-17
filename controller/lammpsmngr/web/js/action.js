@@ -66,9 +66,9 @@ $().ready(function(){
 			var modules = data;
 			var haml_modules = new Array();
 			for (var i=0; i < modules.length; i++) {
-				var id = modules[i].title;
+				var id = modules[i].guid;
 				var title = modules[i].title;
-				var haml = ["%li", ["%a", {class: "nav", href: "#/manage-modules/modules/"+guid }, title]];
+				var haml = ["%li", ["%a", {class: "nav", href: "#/manage-modules/modules/"+id }, title]];
 				haml_modules.push(haml);
 			};
 			
