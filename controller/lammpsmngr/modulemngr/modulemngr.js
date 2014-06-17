@@ -47,21 +47,19 @@ function MM () {
 	
 	// pin numbers from /sys/class/gpio numbering, I assume this: http://raspberrypiguide.de/howtos/raspberry-pi-gpio-how-to/
 	var spidev = "/dev/spidev0.0", cePin = 24, irqPin = 25;
-	console.log(NRF24);
 	this.nrf = NRF24.connect(spidev, cePin, irqPin);
-	this.nrf.channel(125).dataRate('2Mbps').crcBytes(2);
+	this.nrf.channel(0x7d).dataRate('2Mbps').crcBytes(2).autoRetransmit({count:3, delay:4000});
 	this.nrf.begin();
 	this.nrf.on('ready', function() {
 		this.nrf.printDetails();
-		var addrBuf = new Buffer(5);
-		addrBuf.fill(0);
+		var addrBuf = new Buffer([0x00, 0x00, 0x00, 0x00, 0x00])
 		this.nrfRx = this.nrf.openPipe('rx', addrBuf); // used to wait for registration requests
 		// tx stuff only openend when neccessary...
 		
 		this.nrfRx.on('readable', function(data) {
 			// process registration request
 			var data = this.nrfRx.read();
-			console.log("RX on pipe 0!", data);
+			console.log("RX!!!", data);
 			//this.rcvData(0, data);
 		}.bind(this));
 		this.nrfRx.on('data', function(chunk) {
