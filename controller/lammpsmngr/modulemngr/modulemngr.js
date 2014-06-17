@@ -52,7 +52,9 @@ function MM () {
 	this.nrf.channel(127).dataRate('2Mbps').crcBytes(2);
 	this.nrf.begin();
 	this.nrf.on('ready', function() {
-		this.nrfRx = this.nrf.openPipe('rx', 0x0000000000, {autoAck: false}); // used to wait for registration requests
+		var addrBuf = new Buffer(5);
+		addrBuf.fill(0);
+		this.nrfRx = this.nrf.openPipe('rx', addrBuf, {autoAck: false}); // used to wait for registration requests
 		// tx stuff only openend when neccessary...
 	
 		this.nrfRx.on('readable', function() {
