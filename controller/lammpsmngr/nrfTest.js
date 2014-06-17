@@ -9,5 +9,11 @@ radio.begin(function () {
 		console.log("reading data", rx.read());
 		radio.printDetails();
 	});
+	rx.on('error', function(e){ 
+		console.log("Error in pipe", e);
+	});
     //rx.pipe(tx);        // echo back everything
+});
+radio.on('error', function(e){
+	console.log(e);
 });
