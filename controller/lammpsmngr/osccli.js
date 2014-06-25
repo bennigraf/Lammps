@@ -11,12 +11,36 @@ module.exports = function(lm) {
 	
 	var osc = require('node-osc');
 	var oscServer = new osc.Server(13333, '0.0.0.0');
+	// console.log(lm);
 
 	oscServer.on("message", function (msg, rinfo) {
 		console.log("Message:");
 		console.log(msg);
+		console.log(rinfo);
 		// switch msg[0] (the path) from here on, maybe use express.js-routing?
 		switch (msg[0]) {
+		case "/listmodules": 
+			// find all modules, send them back to sender somehow
+			var sndrAddr = rinfo.address;
+			// var sndrPrt = rinfo.port;
+			var sndrPrt = 13334;
+			var modules = lm.listmodules();
+			var responder = new osc.Client(sndrAddr, sndrPrt);
+			// console.log(modules);
+			for(i in modules) {
+				var msg =  new osc.Message('/listmodule');
+				msg.append(modules[i]['guid'].toString());
+				for(j in modules[i]['functions']) {
+					msg.append(modules[i]['functions'][j]);
+				}
+				responder.send(msg);
+			}
+			// HACK for now: socket must be closed after messages have been sent! TODO: patch node-osc to allow for callback on .send
+			setTimeout(function() {
+				responder._sock.close()
+			}, 500);
+			
+			break;
 		case "/module/set":
 			// msg[1] is all or module id, msg[2] is function, etc...
 			var guid = msg[1];
@@ -30,8 +54,8 @@ module.exports = function(lm) {
 					setData(guid, func, data);
 				}
 			} else {
-				console.log("setting", guid, func, data);
-				setData(guid, func, data);
+				// console.log("setting", guid, func, data);
+				setData(new Buffer(guid), func, data);
 			}
 			break;
 		default:
@@ -51,6 +75,7 @@ module.exports = function(lm) {
 			break;
 		}
 	}
+	
 }
 /*
 /listmodules

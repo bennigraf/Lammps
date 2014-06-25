@@ -152,6 +152,7 @@ MM.prototype.sendData = function(addr, data) {
 // cmd: cmd to send (cmd-byte is byte 2)
 // data: data-bytes...
 MM.prototype.sendPacket = function(addr, cmd, data) {
+	console.log("sending", addr, cmd, data);
 	var pipe = this.nrf.openPipe('tx', addr, {autoAck: false});
 	var infoByte = Buffer([this.makeInfoByte(data.length)]);
 	var cmdByte = Buffer([cmd]);
@@ -176,7 +177,7 @@ MM.prototype.createFakeModules = function() {
 		{ guid: 'xhhee', 'location': [0, 0], 'functions': [0x20, 0x30] }, // funcs: dim&col
 		{ guid: 'ddwgq', 'location': [0, 1], 'functions': [0x20, 0x30] },
 		{ guid: 'askwb', 'location': [1, 0], 'functions': [0x20, 0x30] },
-		{ guid: 'icosz', 'location': [1, 0], 'functions': [0x40] } // funcs: snd
+		// { guid: 'icosz', 'location': [1, 0], 'functions': [0x40] } // funcs: snd
 	];
 	var data = new Buffer([0x10, 0x10]); // register module
 	for (var i = 0; i < fmods.length; i++) {
@@ -211,9 +212,8 @@ MM.prototype.registerModule = function(data) {
 	var addrBuf = new Buffer(5).fill(0);
 	addrBuf.writeUInt32BE(address, 1);
 	module.address = address;
-	console.log(guid, addrBuf);
 	this.modules.push(module);
-	console.log(this.modules);
+	// console.log(this.modules);
 	// console.log(module);
 	
 	// TODO: send packet back to module - info-byte, 0x01, (5bytes)guid, (5bytes)addr
@@ -246,7 +246,7 @@ MM.prototype.removeModule = function(id) {
 
 MM.prototype.findByGUID = function(guid) {
 	for (var i = 0; i < this.modules.length; i++) {
-		console.log("Guids:", this.modules[i].guid.toString(), guid.toString());
+		// console.log("Guids:", this.modules[i].guid.toString(), guid.toString());
 		var found = false;
 		for(var j = 0; j < guid.length; j++) {
 			if(guid[j] != this.modules[i].guid[j]) {
