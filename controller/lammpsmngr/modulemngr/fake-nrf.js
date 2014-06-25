@@ -26,6 +26,14 @@ NRF24.prototype.crcBytes = function(b) {
 	console.log("set crc bytes", b);
 	return this;
 }
+NRF24.prototype.autoRetransmit = function(r) {
+	console.log("retransmit", r);
+	return this;
+}
+NRF24.prototype.printDetails = function() {
+	console.log("printing no details here");
+	return this;
+}
 NRF24.prototype.begin = function() {
 	console.log("beginning");
 	setTimeout(function() {
@@ -35,6 +43,14 @@ NRF24.prototype.begin = function() {
 
 NRF24.prototype.openPipe = function(type, addr, options) {
 	console.log("opened nrf pipe", type, addr, options);
+	return this;
+}
+NRF24.prototype.write = function(data) {
+	console.log("written data", data);
+	return this;
+}
+NRF24.prototype.close = function() {
+	console.log("closing");
 	return this;
 }
 
